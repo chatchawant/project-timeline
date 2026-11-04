@@ -1,0 +1,1292 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Project Timeline Manager</title>
+  <style>
+    :root {
+      --bg: #f5f8fc;
+      --panel: #ffffff;
+      --line: #e5ebf4;
+      --line-strong: #d5deeb;
+      --text: #0f172a;
+      --muted: #64748b;
+      --blue: #3567e9;
+      --blue-soft: #eef4ff;
+      --shadow: 0 8px 24px rgba(15, 23, 42, .06);
+      --left-col: 360px;
+      --day-px: 32px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); }
+    button, input, select { font: inherit; }
+
+    .sync-alarm {
+      position: fixed; inset: 0; z-index: 1000; pointer-events: none;
+      border: 5px solid transparent; border-radius: 2px; opacity: 0;
+      transition: opacity .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+    .sync-alarm.active {
+      opacity: 1; border-color: #ef4444;
+      box-shadow: inset 0 0 22px rgba(239,68,68,.18);
+      animation: syncAlarmPulse 1.35s ease-in-out infinite;
+    }
+    .sync-alarm-label {
+      position: absolute; bottom: 13px; right: 13px;
+      max-width: calc(100vw - 32px); padding: 7px 12px; border-radius: 999px;
+      background: #b91c1c; color: #fff; box-shadow: 0 4px 14px rgba(127,29,29,.25);
+      font-size: 11px; font-weight: 900; letter-spacing: .04em; text-align: center;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    @keyframes syncAlarmPulse {
+      0%, 100% { box-shadow: inset 0 0 16px rgba(239,68,68,.14); }
+      50% { box-shadow: inset 0 0 34px rgba(239,68,68,.34); }
+    }
+    @media (prefers-reduced-motion: reduce) { .sync-alarm.active { animation: none; } }
+    button { cursor: pointer; }
+
+    .app { min-height: 100vh; padding: 12px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
+
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      padding: 18px 18px; margin-bottom: 12px;
+    }
+    .eyebrow { color: #5b6cff; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+    h1 { margin: 4px 0 8px; font-size: 20px; }
+    .meta { display: flex; gap: 8px; flex-wrap: wrap; }
+    .pill { background: #f4f7fb; color: #334155; border-radius: 8px; padding: 6px 9px; font-size: 11px; }
+    .stats { display: flex; gap: 10px; }
+    .stat { min-width: 100px; padding: 12px 14px; border-radius: 12px; border: 1px solid #dce5f3; background: #f7f9fd; }
+    .stat.blue { background: var(--blue-soft); border-color: #bfdbfe; }
+    .stat b { font-size: 22px; display: block; line-height: 1; margin-top: 3px; }
+    .stat span { color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .08em; }
+
+    .toolbar {
+      padding: 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .toolbar-left, .toolbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .date-pill { height: 34px; display: flex; align-items: center; gap: 6px; background: var(--panel); border: 1px solid var(--line-strong); }
+    .date-pill .control { border: 0; height: 30px; padding: 0; width: 128px; background: transparent; }
+    .control { height: 34px; border: 1px solid var(--line-strong); border-radius: 9px; background: #fff; padding: 0 10px; color: #334155; font-size: 12px; }
+    .control:focus { outline: 2px solid #c7d7ff; border-color: #8aabff; }
+    .btn { height: 34px; border: 0; border-radius: 9px; padding: 0 12px; font-weight: 700; font-size: 12px; }
+    .btn.dark { background: #172033; color: #fff; }
+    .btn.blue { background: var(--blue); color: #fff; }
+    .btn.ghost { background: #f8fafc; color: #334155; border: 1px solid var(--line-strong); }
+    .zoom { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: 9px; background: #fff; font-size: 11px; }
+    .zoom input { width: 90px; }
+
+    .notice { margin-bottom: 12px; padding: 10px 14px; background: #eef4ff; border: 1px solid #cfe0ff; color: #23488e; border-radius: 10px; font-size: 11px; display: flex; justify-content: space-between; gap: 12px; transition: opacity .18s ease, transform .18s ease, box-shadow .18s ease; }
+    .file-status { display:inline-flex; align-items:center; gap:5px; margin-left:8px; padding:3px 7px; border-radius:6px; background:rgba(255,255,255,.65); border:1px solid rgba(35,72,142,.16); white-space:nowrap; }
+    #statusFloatBtn { display: none; }
+
+    .app.header-collapsed .topbar { display: none; }
+    .app.header-collapsed .toolbar {
+      position: sticky; top: 8px; z-index: 60; margin-bottom: 8px;
+      box-shadow: 0 10px 28px rgba(15,23,42,.13);
+    }
+    .app.header-collapsed #statusFloatBtn { display: inline-flex; }
+    .app.header-collapsed .notice {
+      position: fixed; bottom: 64px; right: 18px; z-index: 55; width: min(480px, calc(100vw - 36px));
+      flex-wrap: wrap; overflow-wrap: anywhere;
+      margin: 0; opacity: 0; pointer-events: none; transform: translateY(8px);
+      box-shadow: 0 12px 34px rgba(15,23,42,.22);
+    }
+    .app.header-collapsed .notice.float-show {
+      opacity: 1; pointer-events: auto; transform: translateY(0);
+    }
+    .app.header-collapsed .scroller { max-height: calc(100vh - 92px); }
+
+    .timeline-card { overflow: hidden; }
+    .scroller { overflow: auto; max-height: calc(100vh - 245px); position: relative; }
+    .schedule { min-width: max-content; }
+    .row { display: grid; grid-template-columns: var(--left-col) var(--timeline-w); min-width: calc(var(--left-col) + var(--timeline-w)); }
+    .sticky-left { position: sticky; left: 0; z-index: 6; background: #fff; border-right: 1px solid var(--line); }
+    .header-left { padding: 10px 12px; font-size: 10px; font-weight: 800; color: #475569; border-bottom: 1px solid var(--line); background: #f7f9fc; }
+    .month-row .sticky-left { background: #eef2f7; }
+    .weekday-row .sticky-left { background: #f7f9fc; }
+    .month-row .timeline { height: 34px; background: #e9eef5; border-bottom: 1px solid var(--line); position: relative; }
+    .month-band { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #334155; border-right: 1px solid #dce3ed; }
+
+    .weekday-row .timeline { height: 48px; background: #f7f9fc; border-bottom: 1px solid var(--line); display: flex; position: relative; background-image: linear-gradient(to right, rgba(148,163,184,.38) 2px, transparent 2px), linear-gradient(to right, #e8edf5 1px, transparent 1px); background-size: calc(var(--day-px) * 5) 100%, var(--day-px) 100%; }
+    .day-cell { width: var(--day-px); flex: 0 0 var(--day-px); border-right: 1px solid #e8edf5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
+    .day-cell .dow { font-size: 8px; color: #64748b; font-weight: 800; }
+    .day-cell .dom { font-size: 10px; color: #0f172a; font-weight: 800; }
+    .day-cell.weekend { background: #f2f5fa; }
+    .day-cell.today { background: #dff7df; box-shadow: inset 0 0 0 1px #58c472; }
+
+    .today-column { position: absolute; top: 0; bottom: 0; width: var(--day-px); background: rgba(88, 196, 114, .14); border-left: 1px solid rgba(88, 196, 114, .58); border-right: 1px solid rgba(88, 196, 114, .40); pointer-events: none; z-index: 0; }
+
+    .group-row .sticky-left { height: 38px; padding: 0 12px; display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; overflow: hidden; }
+    .group-row .timeline { height: 38px; border-bottom: 1px solid var(--line); position: relative; overflow: hidden; background-image: linear-gradient(to right, rgba(148,163,184,.32) 2px, transparent 2px), linear-gradient(to right, #edf1f6 1px, transparent 1px); background-size: calc(var(--day-px) * 5) 100%, var(--day-px) 100%; }
+    .group-main { min-width: 0; flex: 1 1 auto; display: flex; align-items: center; gap: 5px; overflow: hidden; }
+    .group-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .group-count { flex: 0 0 auto; font-weight: 500; color: #64748b; letter-spacing: 0; }
+    .group-actions { display: flex; align-items: center; gap: 3px; flex: 0 0 auto; }
+    .icon-btn { width: 25px; height: 25px; border: 0; background: transparent; border-radius: 6px; color: #64748b; }
+    .icon-btn:hover { background: rgba(15,23,42,.06); color: #0f172a; }
+
+    .task-row .sticky-left { height: 118px; padding: 10px 12px; border-bottom: 1px solid var(--line); display: flex; align-items: flex-start; gap: 8px; overflow: hidden; background: var(--task-soft, #fff); }
+    .drag-dot { color: #c0c8d4; user-select: none; line-height: 22px; }
+    .task-left { min-width: 0; flex: 1; }
+    .task-titleline { display: flex; align-items: center; gap: 6px; min-width: 0; }
+    .index-badge { min-width: 24px; height: 20px; padding: 0 6px; border-radius: 6px; background: #f3f6fa; border: 1px solid #dbe3ee; color: #334155; font-size: 10px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
+    .task-title-input { min-width: 0; width: 100%; height: 24px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: var(--text); padding: 0 4px; font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .task-title-input:hover { border-color: #dbe3ee; background: #fff; }
+    .task-title-input:focus { outline: 2px solid #c7d7ff; border-color: #8aabff; background: #fff; }
+    .task-controls { margin-top: 8px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; max-height: 78px; overflow: hidden; }
+    .resource-btn { width: 25px; height: 24px; padding: 0; border: 1px solid var(--task-chip-border, #dbe3ee); background: var(--task-chip-bg, #f8fafc); border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; color: #475569; }
+    .resource-btn:hover { filter: brightness(.97); }
+    .finish-btn { font-weight: 800; }
+    .task-row .finish-btn { background: var(--task-chip-bg, #f8fafc); border: 1px solid var(--task-chip-border, #dbe3ee); color: #334155; border-radius: 6px; padding: 0 8px; }
+    .finish-btn.status-reopen { background: rgba(255,255,255,.70); color: #64748b; }
+    .finish-btn.status-todo { background: color-mix(in srgb, var(--task-chip-bg, #f8fafc) 88%, #dbeafe 12%); color: #1d4ed8; }
+    .finish-btn.status-ongoing { background: color-mix(in srgb, var(--task-chip-bg, #f8fafc) 82%, #fef3c7 18%); color: #b45309; }
+    .finish-btn.status-finish { background: rgba(255,255,255,.78); border-color: var(--task-chip-border, #b7e2c5); color: #166534; }
+    .mini { height: 24px; border: 1px solid var(--task-chip-border, #dbe3ee); background: var(--task-chip-bg, #f8fafc); border-radius: 6px; padding: 0 7px; font-size: 9px; color: #334155; max-width: 138px; }
+    .stepper { display: inline-flex; gap: 2px; align-items: center; }
+    .stepper button { height: 24px; min-width: 27px; border: 1px solid var(--task-chip-border, #dbe3ee); background: var(--task-chip-bg, #f8fafc); color: #475569; border-radius: 6px; font-size: 9px; }
+    .stepper-label { height: 24px; display: inline-flex; align-items: center; padding: 0 6px; border: 1px solid var(--task-chip-border, #dbe3ee); background: rgba(255,255,255,.72); border-radius: 6px; color: #64748b; font-size: 9px; white-space: nowrap; }
+
+    .task-row .timeline { height: 118px; position: relative; border-bottom: 1px solid var(--line); overflow: hidden; background-color: var(--task-lane, #fff); background-image: linear-gradient(to right, rgba(148,163,184,.38) 2px, transparent 2px), linear-gradient(to right, #edf1f6 1px, transparent 1px); background-size: calc(var(--day-px) * 5) 100%, var(--day-px) 100%; }
+    .task-row .timeline.weekend-overlay { }
+    .bar { position: absolute; top: 41px; height: 36px; border-radius: 7px; color: white; display: flex; align-items: center; gap: 6px; padding: 0 8px; font-size: 10px; font-weight: 700; white-space: nowrap; overflow: hidden; user-select: none; box-shadow: 0 2px 7px rgba(15,23,42,.12); cursor: grab; z-index: 1; }
+    .bar:active { cursor: grabbing; }
+    .bar .bar-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .bar .duration { position: static; flex: 0 0 auto; height: 20px; min-width: 26px; padding: 0 5px; border-radius: 5px; background: rgba(15,23,42,.22); display: inline-flex; align-items: center; justify-content: center; font-size: 9px; }
+    .bar.compact { justify-content: center; }
+    .bar.compact .duration { display: none; }
+    .bar.tiny { padding: 0 6px; }
+    .bar.tiny .bar-title { text-align: center; font-size: 9px; }
+    .bar.is-finished { opacity: .38; filter: saturate(.65); }
+    .task-row.is-finished .task-left { opacity: .78; }
+    .resize { position: absolute; right: 0; top: 0; bottom: 0; width: 10px; cursor: ew-resize; }
+    .unscheduled { top: 41px; left: 8px !important; width: 130px !important; background: #94a3b8 !important; }
+
+    .empty { padding: 40px; text-align: center; color: #64748b; }
+
+    dialog { width: min(520px, calc(100vw - 28px)); border: 0; border-radius: 16px; padding: 0; box-shadow: 0 24px 80px rgba(15,23,42,.28); }
+    dialog::backdrop { background: rgba(15, 23, 42, .42); }
+    .modal-head { padding: 16px 18px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; }
+    .modal-head h2 { margin: 0; font-size: 16px; }
+    .modal-body { padding: 18px; display: grid; gap: 12px; }
+    .field { display: grid; gap: 6px; }
+    .field label { font-size: 11px; font-weight: 800; color: #475569; }
+    .field input, .field select { width: 100%; height: 38px; border: 1px solid var(--line-strong); border-radius: 9px; padding: 0 10px; }
+    .field textarea { width: 100%; min-height: 96px; resize: vertical; border: 1px solid var(--line-strong); border-radius: 9px; padding: 10px; font: inherit; color: var(--text); background: var(--panel); }
+    .resource-hint { font-size: 10px; color: var(--muted); line-height: 1.35; }
+    .note-view { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.55; color: var(--text); background: rgba(148,163,184,.08); border: 1px solid var(--line); border-radius: 10px; padding: 12px; min-height: 100px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .modal-foot { padding: 14px 18px 18px; display: flex; justify-content: flex-end; gap: 8px; }
+    .danger { color: #b91c1c !important; }
+
+    .toast { position: fixed; right: 18px; bottom: 18px; background: #172033; color: #fff; border-radius: 10px; padding: 10px 14px; font-size: 12px; opacity: 0; transform: translateY(10px); pointer-events: none; transition: .2s; z-index: 99; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    body:has(.sync-alarm.active) .toast { bottom: 58px; }
+    body:has(.toast.show) .app.header-collapsed .notice { bottom: 112px; }
+
+    /* Dark mode */
+    html[data-theme="dark"] {
+      --bg: #090d14;
+      --panel: #111722;
+      --line: #232d3b;
+      --line-strong: #344154;
+      --text: #eef4ff;
+      --muted: #9ba9bb;
+      --blue-soft: #17254a;
+      --shadow: 0 8px 28px rgba(0, 0, 0, .28);
+      color-scheme: dark;
+    }
+    html[data-theme="dark"] body { background: var(--bg); color: var(--text); }
+    html[data-theme="dark"] .card,
+    html[data-theme="dark"] dialog { background: var(--panel); color: var(--text); border-color: var(--line); }
+    html[data-theme="dark"] .pill,
+    html[data-theme="dark"] .control,
+    html[data-theme="dark"] .btn.ghost,
+    html[data-theme="dark"] .zoom,
+    html[data-theme="dark"] .field input,
+    html[data-theme="dark"] .field select,
+    html[data-theme="dark"] .field textarea { background: #151d29; color: #e7eef8; border-color: #344154; }
+    html[data-theme="dark"] .date-pill { background: #151d29 !important; border-color: #344154 !important; }
+    html[data-theme="dark"] .date-pill .control { background: transparent !important; }
+    html[data-theme="dark"] .pill { background: #17202c; }
+    html[data-theme="dark"] .stat { background: #151d29; border-color: #2d394a; }
+    html[data-theme="dark"] .stat.blue { background: #17254a; border-color: #3155a5; }
+    html[data-theme="dark"] .stat span,
+    html[data-theme="dark"] .group-count,
+    html[data-theme="dark"] .field label,
+    html[data-theme="dark"] .day-cell .dow,
+    html[data-theme="dark"] .stepper-label { color: #9ba9bb; }
+    html[data-theme="dark"] .header-left { color: #b8c4d4; border-color: #263244; background: #1a2230; }
+    html[data-theme="dark"] .month-row .sticky-left,
+    html[data-theme="dark"] .month-row .timeline { background: #1a2230; }
+    html[data-theme="dark"] .month-band { color: #dce5f2; border-color: #2b3748; }
+    html[data-theme="dark"] .weekday-row .timeline {
+      background-color: #101722;
+      background-image: linear-gradient(to right, rgba(126,146,173,.28) 2px, transparent 2px), linear-gradient(to right, #263244 1px, transparent 1px);
+    }
+    html[data-theme="dark"] .day-cell { border-color: #263244; }
+    html[data-theme="dark"] .day-cell .dom { color: #f3f7fd; }
+    html[data-theme="dark"] .day-cell.today { background: #173323; box-shadow: inset 0 0 0 1px #34d399; }
+    html[data-theme="dark"] .today-column { background: rgba(52, 211, 153, .12); border-left-color: rgba(52, 211, 153, .42); border-right-color: rgba(52, 211, 153, .32); }
+    html[data-theme="dark"] .sticky-left { border-color: #263244; }
+    html[data-theme="dark"] .group-row .sticky-left {
+      background: color-mix(in srgb, var(--group-header, #eef4ff) 22%, #111722 78%) !important;
+    }
+    html[data-theme="dark"] .group-row .timeline {
+      background-color: color-mix(in srgb, var(--group-timeline, #eef4ff) 13%, #0f1620 87%) !important;
+      background-image: linear-gradient(to right, rgba(126,146,173,.24) 2px, transparent 2px), linear-gradient(to right, #253142 1px, transparent 1px);
+    }
+    html[data-theme="dark"] .task-row .sticky-left {
+      background: color-mix(in srgb, var(--task-soft, #eef4ff) 14%, #111722 86%);
+    }
+    html[data-theme="dark"] .task-row .timeline {
+      background-color: color-mix(in srgb, var(--task-lane, #eef4ff) 8%, #0e141e 92%);
+      background-image: linear-gradient(to right, rgba(126,146,173,.26) 2px, transparent 2px), linear-gradient(to right, #243042 1px, transparent 1px);
+      border-color: #232d3b;
+    }
+    html[data-theme="dark"] .task-title-input { color: #f3f7fd; }
+    html[data-theme="dark"] .task-title-input:hover,
+    html[data-theme="dark"] .task-title-input:focus { background: #17202c; border-color: #46566d; }
+    html[data-theme="dark"] .index-badge { background: #1b2431; border-color: #3a485b; color: #dce5f2; }
+    html[data-theme="dark"] .mini,
+    html[data-theme="dark"] .stepper button,
+    html[data-theme="dark"] .resource-btn,
+    html[data-theme="dark"] .task-row .finish-btn {
+      background: color-mix(in srgb, var(--task-chip-bg, #eef4ff) 11%, #17202c 89%);
+      border-color: color-mix(in srgb, var(--task-chip-border, #64748b) 26%, #3a4658 74%);
+      color: #dce5f2;
+    }
+    html[data-theme="dark"] .stepper-label { background: #151d29; border-color: #344154; }
+    html[data-theme="dark"] .finish-btn.status-reopen { background: #1a2230; color: #b8c4d4; }
+    html[data-theme="dark"] .finish-btn.status-todo { background: #16284d; color: #bed3ff; }
+    html[data-theme="dark"] .finish-btn.status-ongoing { background: #3a2c10; color: #f7d58b; }
+    html[data-theme="dark"] .finish-btn.status-finish { background: #183224; color: #9fe0b5; }
+    html[data-theme="dark"] .notice { background: #14203a; border-color: #294675; color: #b8d2ff; }
+    html[data-theme="dark"] .app.header-collapsed .toolbar { box-shadow: 0 12px 32px rgba(0,0,0,.38); }
+    html[data-theme="dark"] .file-status { background: rgba(7,12,20,.35); border-color: rgba(130,160,205,.25); }
+    html[data-theme="dark"] .icon-btn { color: #9ba9bb; }
+    html[data-theme="dark"] .icon-btn:hover { background: rgba(255,255,255,.07); color: #fff; }
+    html[data-theme="dark"] .danger { color: #ff8b8b !important; }
+    html[data-theme="dark"] dialog::backdrop { background: rgba(0, 0, 0, .66); }
+    html[data-theme="dark"] .modal-head { border-color: #263244; }
+    html[data-theme="dark"] .bar { box-shadow: 0 3px 10px rgba(0,0,0,.34); }
+    html[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.85); }
+
+    @media (max-width: 800px) {
+      :root { --left-col: 300px; }
+      .stats { width: 100%; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .stat { flex: 1; }
+      .grid2 { grid-template-columns: 1fr; }
+      .scroller { max-height: calc(100vh - 330px); }
+      .app.header-collapsed .scroller { max-height: calc(100vh - 128px); }
+    }
+    /* Compact task rows: title above a single, non-wrapping control strip. */
+    .task-row .sticky-left { height: 64px; padding: 6px 10px; gap: 6px; }
+    .task-row .timeline { height: 64px; }
+    .task-controls { margin-top: 3px; gap: 5px; flex-wrap: nowrap; max-height: none; }
+    .task-controls > * { flex-shrink: 0; }
+    .task-controls .task-date { width: 112px; min-width: 0; padding: 0 4px; font-size: 10px; }
+    .task-controls .mini { height: 23px; }
+    .task-more { margin-left: auto; letter-spacing: 1px; }
+    .task-row .bar { top: 17px; height: 30px; }
+    .task-action-menu { position: fixed; inset: auto; margin: 0; padding: 5px; width: 180px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--text); box-shadow: 0 8px 28px #0003; }
+    .task-action-menu button { display: block; width: 100%; padding: 8px; text-align: left; background: transparent; border: 0; border-radius: 4px; color: inherit; font-size: 12px; }
+    .task-action-menu button:hover, .task-action-menu button:focus-visible { background: #64748b26; }
+    html[data-theme="dark"] .task-action-menu { background: #252d38; }
+  </style>
+</head>
+<body>
+  <div class="sync-alarm" id="syncAlarm" aria-hidden="true"><div class="sync-alarm-label" id="syncAlarmLabel">FILE NOT SYNCED</div></div>
+  <div class="app">
+    <section class="topbar card">
+      <div>
+        <div class="eyebrow">✣ Interactive timeline canvas</div>
+        <h1 id="projectName">Product & Spatial Design</h1>
+        <div class="meta">
+          <span class="pill">👤 Manager: <b id="managerName">Project Manager</b></span>
+          <span class="pill">🏢 Company: <b id="companyName">Your Company</b></span>
+          <span class="pill">◷ Project Date: <b id="projectDateText"></b></span>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat blue"><span>TOTAL TASKS</span><b id="totalTasks">0</b></div>
+        <div class="stat"><span>PRODUCTS</span><b id="totalProducts">0</b></div>
+      </div>
+    </section>
+
+    <section class="toolbar card">
+      <div class="toolbar-left">
+        <label class="pill date-pill">📅 <b>Start Date:</b>
+          <input id="startDate" class="control" type="date">
+        </label>
+        <select id="daysVisible" class="control">
+          <option value="20">20 Days</option>
+          <option value="30">30 Days</option>
+          <option value="40">40 Days</option>
+          <option value="60">60 Days</option>
+          <option value="90">90 Days</option>
+        </select>
+        <button class="btn ghost" id="unscheduledBtn">◷ Unscheduled (0)</button>
+        <button class="btn ghost" id="hideFinishedBtn" aria-pressed="false" title="Hide tasks with Finish status">Hide finished</button>
+        <div class="zoom">🔍 <span id="zoomLabel">32px / day</span><input id="zoomRange" type="range" min="20" max="56" step="2" value="32"></div>
+      </div>
+      <div class="toolbar-right">
+        <input id="search" class="control" placeholder="Search task or title…" style="width:190px">
+        <select id="groupFilter" class="control"><option value="all">All Project Groups</option></select>
+        <button class="btn ghost" id="statusFloatBtn" title="Show the project status bar temporarily">ⓘ Status</button>
+        <button class="btn ghost" id="headerToggleBtn" title="Collapse the project header and keep only the controls visible">▴ Collapse Header</button>
+        <button class="btn ghost" id="themeToggleBtn" title="Switch between light and dark mode">🌙 Dark Mode</button>
+        <button class="btn ghost" id="fileSyncBtn" title="Choose a project data file once, then auto-save to it">📁 Connect File</button>
+        <button class="btn ghost" id="saveProjectBtn" title="Download a portable project backup">⇩ Backup</button>
+        <button class="btn ghost" id="loadProjectBtn" title="Import a portable project backup">⇧ Import</button>
+        <button class="btn dark" id="addGroupBtn">▣ Add Group</button>
+        <button class="btn blue" id="addTaskBtn">＋ Add Task</button>
+        <input id="projectFileInput" type="file" accept=".json,.project.json,application/json" hidden>
+      </div>
+    </section>
+
+    <div class="notice" id="projectNotice">
+      <span>ⓘ Edits auto-save locally. <b>Connect File</b> once to also save automatically to one project file. <span class="file-status" id="fileStatus">💾 Local only</span></span>
+      <b id="verifiedCount">0 Tasks verified</b>
+    </div>
+
+    <section class="timeline-card card">
+      <div class="scroller" id="scroller">
+        <div class="schedule" id="schedule"></div>
+      </div>
+    </section>
+  </div>
+
+  <dialog id="groupDialog">
+    <form method="dialog" id="groupForm">
+      <div class="modal-head"><h2 id="groupModalTitle">Add project group</h2><button class="icon-btn" value="cancel" type="submit">✕</button></div>
+      <div class="modal-body">
+        <div class="field"><label>Group name</label><input id="groupNameInput" required placeholder="e.g. New Year Gift Box"></div>
+        <div class="field"><label>Group tint</label><select id="groupTintInput"><option value="#e8f7fb">Aqua</option><option value="#fff9e7">Warm cream</option><option value="#eaf8ef">Mint</option><option value="#f5efff">Lavender</option><option value="#eef4ff">Blue</option></select></div>
+      </div>
+      <div class="modal-foot"><button class="btn ghost" value="cancel" type="submit">Cancel</button><button class="btn blue" value="default" id="saveGroupBtn" type="button">Save group</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="taskDialog">
+    <form method="dialog" id="taskForm">
+      <div class="modal-head"><h2 id="taskModalTitle">Add task</h2><button class="icon-btn" value="cancel" type="submit">✕</button></div>
+      <div class="modal-body">
+        <div class="field"><label>Task title / Linked product</label><input id="taskTitleInput" required placeholder="e.g. Central world (decline)"><div style="font-size:10px;color:#64748b">The linked product automatically uses the same name as the task title.</div></div>
+        <div class="field"><label>Project group</label><select id="taskGroupInput"></select></div>
+        <div class="grid2">
+          <div class="field"><label>Start date</label><input id="taskStartInput" type="date"></div>
+          <div class="field"><label>Duration (days)</label><input id="taskDurationInput" type="number" min="1" max="365" value="4"></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label>Index</label><input id="taskIndexInput" type="number" min="1" value="1"></div>
+          <div class="field"><label>Status</label><select id="taskStatusInput"><option value="reopen">Reopen</option><option value="todo">To Be Done</option><option value="ongoing">Ongoing</option><option value="finish">Finish</option></select></div>
+        </div>
+        <div class="field"><label>📁 File location</label><input id="taskFileLocationInput" placeholder="e.g. D:\\Projects\\Bruno Glasses or file:///..."><div class="resource-hint">Saved as a path reference. The folder button on the task copies this location.</div></div>
+        <div class="field"><label>🔗 Web link</label><input id="taskWebLinkInput" type="url" placeholder="https://drive.google.com/..."><div class="resource-hint">The link button opens this address in a new tab.</div></div>
+        <div class="field"><label>📝 Notes</label><textarea id="taskNoteInput" placeholder="Add notes, client feedback, dimensions, next steps, etc."></textarea></div>
+        <div style="font-size:10px;color:#64748b">Leave the start date empty to keep the task unscheduled.</div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn ghost danger" id="deleteTaskBtn" type="button" style="display:none;margin-right:auto">Delete task</button>
+        <button class="btn ghost" value="cancel" type="submit">Cancel</button>
+        <button class="btn blue" id="saveTaskBtn" type="button">Save task</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="noteDialog">
+    <div class="modal-head"><h2 id="noteDialogTitle">Task note</h2><button class="icon-btn" id="closeNoteBtn" type="button">✕</button></div>
+    <div class="modal-body"><div class="note-view" id="noteDialogText"></div></div>
+    <div class="modal-foot"><button class="btn ghost" id="editNoteTaskBtn" type="button">✎ Edit task</button><button class="btn blue" id="doneNoteBtn" type="button">Done</button></div>
+  </dialog>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const STORAGE_KEY = 'projectTimelineManager.v1';
+    const MS_DAY = 86400000;
+    const TASK_STATUS_ORDER = ['reopen', 'todo', 'ongoing', 'finish'];
+    const TASK_STATUS_META = {
+      reopen: { label: 'Reopen', button: '↺ Reopen' },
+      todo: { label: 'To Be Done', button: '☐ To Be Done' },
+      ongoing: { label: '◔ Ongoing', button: '◔ Ongoing' },
+      finish: { label: '✓ Finish', button: '✓ Finish' }
+    };
+    const $ = (s) => document.querySelector(s);
+
+    const demo = {
+      project: { name: 'Project Timeline', manager: 'Project Manager', company: '', startDate: new Date().toISOString().slice(0,10), daysVisible: 40, dayPx: 32 },
+      groups: [],
+      tasks: []
+    };
+
+    let state = normalizeState(load());
+    let editingTaskId = null;
+    let editingGroupId = null;
+    let noteTaskId = null;
+    let floatingNoticeTimer = null;
+    let onlyUnscheduled = false;
+    let linkedFileHandle = null;
+    let linkedFileWriteTimer = null;
+    const FILE_HANDLE_DB = 'projectTimelineManager.files.v1';
+    const FILE_HANDLE_STORE = 'handles';
+    const FILE_HANDLE_KEY = 'activeProjectFile';
+
+    function load() {
+      try {
+        const v = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        return v && v.project && Array.isArray(v.groups) && Array.isArray(v.tasks) ? v : structuredClone(demo);
+      } catch { return structuredClone(demo); }
+    }
+    let localSaveFailed = false;
+    function saveLocalOnly() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        localSaveFailed = false;
+      } catch (err) {
+        localSaveFailed = true;
+        console.warn('Browser storage unavailable; export a backup.', err);
+      }
+      if (localSaveFailed || !fileSystemSupported()) updateFileStatus('local');
+    }
+    function save() {
+      saveLocalOnly();
+      scheduleLinkedFileSave();
+    }
+    function uid(prefix='id') { return prefix + Math.random().toString(36).slice(2, 9); }
+    function parseDate(s) { if (!s) return null; const [y,m,d] = s.split('-').map(Number); return new Date(Date.UTC(y,m-1,d)); }
+    function fmtISO(d) { return d.toISOString().slice(0,10); }
+    function isWeekendDate(d) { return [0,6].includes(d.getUTCDay()); }
+    function normalizeToBusinessDay(s, direction=1) {
+      if (!s) return null;
+      const d = parseDate(s);
+      while (isWeekendDate(d)) d.setUTCDate(d.getUTCDate() + (direction >= 0 ? 1 : -1));
+      return fmtISO(d);
+    }
+    function addDays(s, n) { const d = parseDate(s); d.setUTCDate(d.getUTCDate()+n); return fmtISO(d); }
+    function addBusinessDays(s, n) {
+      let current = normalizeToBusinessDay(s, n >= 0 ? 1 : -1);
+      if (current == null) return null;
+      if (n === 0) return current;
+      const step = n > 0 ? 1 : -1;
+      let remaining = Math.abs(n);
+      let d = parseDate(current);
+      while (remaining > 0) {
+        d.setUTCDate(d.getUTCDate() + step);
+        if (!isWeekendDate(d)) remaining--;
+      }
+      return fmtISO(d);
+    }
+    function diffDays(a, b) { return Math.round((parseDate(a)-parseDate(b))/MS_DAY); }
+    function businessDiffDays(a, b) {
+      const aNorm = normalizeToBusinessDay(a);
+      const bNorm = normalizeToBusinessDay(b);
+      if (!aNorm || !bNorm) return 0;
+      if (aNorm === bNorm) return 0;
+      const dir = parseDate(aNorm) > parseDate(bNorm) ? 1 : -1;
+      let days = 0;
+      let cursor = bNorm;
+      while (cursor !== aNorm) {
+        cursor = addBusinessDays(cursor, dir);
+        days += dir;
+      }
+      return days;
+    }
+    function getVisibleBusinessDays(start, count) {
+      const out = [];
+      let cursor = normalizeToBusinessDay(start);
+      for (let i = 0; i < count; i++) {
+        out.push(cursor);
+        cursor = addBusinessDays(cursor, 1);
+      }
+      return out;
+    }
+    function normalizeTaskStatus(task) {
+      if (TASK_STATUS_ORDER.includes(task?.status)) return task.status;
+      if (task?.done) return 'finish';
+      return 'todo';
+    }
+    function getTaskStatusMeta(status) { return TASK_STATUS_META[status] || TASK_STATUS_META.todo; }
+    function nextTaskStatus(status) {
+      const idx = TASK_STATUS_ORDER.indexOf(status);
+      return TASK_STATUS_ORDER[(idx + 1 + TASK_STATUS_ORDER.length) % TASK_STATUS_ORDER.length] || 'todo';
+    }
+    function normalizeState(v) {
+      v.project.startDate = normalizeToBusinessDay(v.project.startDate || demo.project.startDate);
+      v.project.theme = v.project.theme === 'dark' ? 'dark' : 'light';
+      v.project.headerCollapsed = !!v.project.headerCollapsed;
+      v.project.hideFinished = !!v.project.hideFinished;
+      v.tasks = v.tasks.map(t => ({ ...t, product: t.title || '', status: normalizeTaskStatus(t), fileLocation: String(t.fileLocation || ''), webLink: String(t.webLink || ''), note: String(t.note || ''), start: t.start ? normalizeToBusinessDay(t.start) : null }));
+      return v;
+    }
+    function applyTheme(theme = 'light') {
+      const resolved = theme === 'dark' ? 'dark' : 'light';
+      document.documentElement.dataset.theme = resolved;
+      const btn = $('#themeToggleBtn');
+      if (btn) {
+        btn.textContent = resolved === 'dark' ? '☀ Light Mode' : '🌙 Dark Mode';
+        btn.title = resolved === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+      }
+    }
+    function toggleTheme() {
+      state.project.theme = state.project.theme === 'dark' ? 'light' : 'dark';
+      applyTheme(state.project.theme);
+      save();
+      render();
+      toast(state.project.theme === 'dark' ? 'Dark mode on' : 'Light mode on');
+    }
+    function showFloatingNotice(ms = 4200) {
+      const app = $('.app');
+      const notice = $('#projectNotice');
+      if (!app?.classList.contains('header-collapsed') || !notice) return;
+      clearTimeout(floatingNoticeTimer);
+      notice.classList.add('float-show');
+      if (ms > 0) floatingNoticeTimer = setTimeout(() => notice.classList.remove('float-show'), ms);
+    }
+    function hideFloatingNotice() {
+      clearTimeout(floatingNoticeTimer);
+      $('#projectNotice')?.classList.remove('float-show');
+    }
+    function applyHeaderCollapse(collapsed = false, announce = false) {
+      const app = $('.app');
+      const btn = $('#headerToggleBtn');
+      if (!app || !btn) return;
+      app.classList.toggle('header-collapsed', !!collapsed);
+      btn.textContent = collapsed ? '▾ Show Header' : '▴ Collapse Header';
+      btn.title = collapsed ? 'Show the project header again' : 'Collapse the project header and keep only the controls visible';
+      if (collapsed) showFloatingNotice(4200); else hideFloatingNotice();
+      if (announce) toast(collapsed ? 'Header collapsed — status will float temporarily' : 'Header restored');
+    }
+    function toggleHeaderCollapse() {
+      state.project.headerCollapsed = !state.project.headerCollapsed;
+      applyHeaderCollapse(state.project.headerCollapsed, true);
+      save();
+    }
+    function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+    function hexToRgb(hex) {
+      const s = String(hex || '').trim().replace('#', '');
+      const full = s.length === 3 ? s.split('').map(c => c + c).join('') : s;
+      if (!/^[0-9a-fA-F]{6}$/.test(full)) return { r: 238, g: 244, b: 255 };
+      return { r: parseInt(full.slice(0, 2), 16), g: parseInt(full.slice(2, 4), 16), b: parseInt(full.slice(4, 6), 16) };
+    }
+    function rgbToHex({ r, g, b }) {
+      return '#' + [r, g, b].map(v => clamp(Math.round(v), 0, 255).toString(16).padStart(2, '0')).join('');
+    }
+    function mixHex(a, b, ratio = 0.5) {
+      const aa = hexToRgb(a), bb = hexToRgb(b), t = clamp(ratio, 0, 1);
+      return rgbToHex({ r: aa.r + (bb.r - aa.r) * t, g: aa.g + (bb.g - aa.g) * t, b: aa.b + (bb.b - aa.b) * t });
+    }
+    function rgbToHsl({ r, g, b }) {
+      r /= 255; g /= 255; b /= 255;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b);
+      let h, s; const l = (max + min) / 2;
+      if (max === min) { h = s = 0; }
+      else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+          case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+          case g: h = (b - r) / d + 2; break;
+          default: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+      }
+      return { h, s, l };
+    }
+    function hslToRgb({ h, s, l }) {
+      let r, g, b;
+      if (s === 0) { r = g = b = l; }
+      else {
+        const hue2rgb = (p, q, t) => {
+          if (t < 0) t += 1;
+          if (t > 1) t -= 1;
+          if (t < 1 / 6) return p + (q - p) * 6 * t;
+          if (t < 1 / 2) return q;
+          if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+          return p;
+        };
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1 / 3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1 / 3);
+      }
+      return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) };
+    }
+    function adjustHsl(hex, { s = null, l = null } = {}) {
+      const hsl = rgbToHsl(hexToRgb(hex));
+      if (s != null) hsl.s = clamp(s, 0, 1);
+      if (l != null) hsl.l = clamp(l, 0, 1);
+      return rgbToHex(hslToRgb(hsl));
+    }
+    function getGroupById(groupId='') { return state.groups.find(g => g.id === groupId) || null; }
+    function getGroupToneSet(groupId='') {
+      const group = getGroupById(groupId);
+      const tint = group?.tint || '#eef4ff';
+      const hsl = rgbToHsl(hexToRgb(tint));
+      const headerBg = adjustHsl(tint, {
+        s: Math.max(0.22, hsl.s * 1.08),
+        l: Math.max(0.88, hsl.l - 0.03)
+      });
+      const timelineBg = mixHex(headerBg, '#ffffff', 0.14);
+      return { tint, headerBg, timelineBg };
+    }
+    function getTaskToneSet(groupId='') {
+      const group = getGroupById(groupId);
+      const tint = group?.tint || '#eef4ff';
+      const hsl = rgbToHsl(hexToRgb(tint));
+      const barColor = adjustHsl(tint, { s: Math.max(0.32, hsl.s * 0.85), l: Math.min(0.66, Math.max(0.56, hsl.l - 0.18)) });
+      const soft = mixHex(tint, '#ffffff', 0.28);
+      const lane = mixHex(tint, '#ffffff', 0.56);
+      const chipBg = mixHex(tint, '#ffffff', 0.34);
+      const chipBorder = mixHex(tint, '#9ca3af', 0.72);
+      return { tint, soft, lane, chipBg, chipBorder, barColor };
+    }
+    function todayColumnHTML(start, daysVisible) {
+      const todayISO = new Date().toISOString().slice(0,10);
+      const pos = businessDiffDays(todayISO, start);
+      if (pos < 0 || pos >= daysVisible) return '';
+      return `<div class="today-column" style="left:${pos * state.project.dayPx}px"></div>`;
+    }
+    function niceDate(s) { if (!s) return 'Unscheduled'; return parseDate(s).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'}); }
+    function esc(s='') { return s.replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+    function toast(msg) { const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast.timer); toast.timer=setTimeout(()=>t.classList.remove('show'),1600); }
+    function normalizeWebLink(url='') {
+      const v = String(url).trim();
+      if (!v) return '';
+      if (/^https?:\/\//i.test(v)) return v;
+      return 'https://' + v;
+    }
+    async function copyText(textToCopy) {
+      try {
+        if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(textToCopy); return true; }
+      } catch {}
+      const ta = document.createElement('textarea');
+      ta.value = textToCopy; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      const ok = document.execCommand('copy'); ta.remove(); return ok;
+    }
+    function openTaskNote(taskId) {
+      const t = state.tasks.find(x => x.id === taskId); if (!t) return;
+      noteTaskId = taskId;
+      $('#noteDialogTitle').textContent = `Notes — ${t.title}`;
+      $('#noteDialogText').textContent = t.note || 'No notes yet.';
+      $('#noteDialog').showModal();
+    }
+
+    function makeProjectPayload() {
+      return { app: 'Project Timeline Manager', version: 1, savedAt: new Date().toISOString(), data: state };
+    }
+    function parseProjectPayload(parsed) {
+      const incoming = parsed?.data?.project ? parsed.data : parsed;
+      if (!incoming?.project || !Array.isArray(incoming.groups) || !Array.isArray(incoming.tasks)) {
+        throw new Error('This is not a valid Project Timeline file.');
+      }
+      return normalizeState(structuredClone(incoming));
+    }
+    function fileSystemSupported() {
+      return 'showSaveFilePicker' in window && 'indexedDB' in window;
+    }
+    function openHandleDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(FILE_HANDLE_DB, 1);
+        req.onupgradeneeded = () => {
+          if (!req.result.objectStoreNames.contains(FILE_HANDLE_STORE)) req.result.createObjectStore(FILE_HANDLE_STORE);
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+    async function storeLinkedFileHandle(handle) {
+      const db = await openHandleDB();
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(FILE_HANDLE_STORE, 'readwrite');
+        tx.objectStore(FILE_HANDLE_STORE).put(handle, FILE_HANDLE_KEY);
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+      db.close();
+    }
+    async function getStoredLinkedFileHandle() {
+      const db = await openHandleDB();
+      const handle = await new Promise((resolve, reject) => {
+        const req = db.transaction(FILE_HANDLE_STORE, 'readonly').objectStore(FILE_HANDLE_STORE).get(FILE_HANDLE_KEY);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error);
+      });
+      db.close();
+      return handle;
+    }
+    function setSyncAlarm(active, message='FILE NOT SYNCED') {
+      const alarm = $('#syncAlarm');
+      const label = $('#syncAlarmLabel');
+      if (!alarm || !label) return;
+      label.textContent = message;
+      alarm.classList.toggle('active', !!active);
+      alarm.setAttribute('aria-hidden', active ? 'false' : 'true');
+    }
+    function updateFileStatus(mode='local', name='') {
+      const status = $('#fileStatus');
+      const button = $('#fileSyncBtn');
+      if (!status || !button) return;
+      if (localSaveFailed) {
+        status.textContent = '🔴 Browser save failed — download a backup now';
+        button.textContent = '⇩ Download backup';
+        button.title = 'Browser storage is unavailable. Download your project to keep your changes.';
+        button.disabled = false;
+        setSyncAlarm(true, 'BROWSER SAVE FAILED — DOWNLOAD BACKUP');
+        showFloatingNotice();
+        return;
+      }
+      if (!fileSystemSupported()) {
+        status.textContent = 'Browser-only saving • Download a backup to save a project file. Use Import to restore it.';
+        button.textContent = '⇩ Download backup';
+        button.title = 'This browser cannot auto-save to a chosen file. Download a project backup (⌘S on Mac / Ctrl+S on Windows).';
+        button.disabled = false;
+        setSyncAlarm(false);
+        showFloatingNotice();
+        return;
+      }
+      button.disabled = false;
+      if (mode === 'retrying') {
+        status.textContent = `⏳ Connecting / retrying: ${name || 'Project file'}`;
+        button.textContent = '⏳ Retrying file…';
+        button.disabled = true;
+        setSyncAlarm(false);
+      } else if (mode === 'linked') {
+        status.textContent = `✅ Synced: ${name || 'Project file'}`;
+        button.textContent = '🔗 File Connected';
+        button.title = 'Click to reconnect or choose a different project file';
+        setSyncAlarm(false);
+      } else if (mode === 'permission') {
+        status.textContent = `🔴 Cannot save — reconnect ${name || 'file'}`;
+        button.textContent = '🔗 Reconnect File';
+        button.title = 'Browser permission is needed again. Click to reconnect.';
+        setSyncAlarm(true, 'FILE NOT SYNCED — RECONNECT FILE');
+      } else if (mode === 'error') {
+        status.textContent = `🔴 Save failed: ${name || 'project file'}`;
+        button.textContent = '⚠ Retry File';
+        button.title = 'The project could not be written to the connected file. Click to retry or reconnect.';
+        setSyncAlarm(true, 'FILE SAVE FAILED — CHANGES ARE ONLY LOCAL');
+      } else {
+        status.textContent = '🔴 Not synced — local only';
+        button.textContent = '📁 Connect File';
+        button.title = 'Choose a project data file once, then auto-save to it';
+        setSyncAlarm(true, 'FILE NOT SYNCED — CONNECT A PROJECT FILE');
+      }
+      showFloatingNotice();
+    }
+    async function filePermission(handle, request=false) {
+      if (!handle) return false;
+      const opts = { mode: 'readwrite' };
+      if ((await handle.queryPermission(opts)) === 'granted') return true;
+      if (request && (await handle.requestPermission(opts)) === 'granted') return true;
+      return false;
+    }
+    async function retryFileOperation(operation) {
+      const delays = [0, 500, 1500, 3000];
+      let lastError;
+      updateFileStatus('retrying', linkedFileHandle?.name);
+      for (const delay of delays) {
+        if (delay) await new Promise(resolve => setTimeout(resolve, delay));
+        try { return await operation(); } catch (err) { lastError = err; }
+      }
+      throw lastError;
+    }
+    let fileWriteQueue = Promise.resolve();
+    function writeLinkedProjectFile(showMessage=false) {
+      fileWriteQueue = fileWriteQueue.then(() => performLinkedFileWrite(showMessage));
+      return fileWriteQueue;
+    }
+    async function performLinkedFileWrite(showMessage=false) {
+      if (!linkedFileHandle) return false;
+      try {
+        await retryFileOperation(async () => {
+        if (!(await filePermission(linkedFileHandle, false))) {
+          throw new DOMException('File access needs reconnecting', 'NotAllowedError');
+        }
+        const writable = await linkedFileHandle.createWritable();
+        try {
+        await writable.write(JSON.stringify(makeProjectPayload(), null, 2));
+        await writable.close();
+        } catch (err) { try { await writable.abort(); } catch (_) {} throw err; }
+        });
+        updateFileStatus('linked', linkedFileHandle.name);
+        if (showMessage) toast('Project file saved');
+        return true;
+      } catch (err) {
+        console.error('Auto-save file error:', err);
+        updateFileStatus(err?.name === 'NotAllowedError' ? 'permission' : 'error', linkedFileHandle?.name);
+        return false;
+      }
+    }
+    function scheduleLinkedFileSave() {
+      if (!linkedFileHandle) return;
+      clearTimeout(linkedFileWriteTimer);
+      linkedFileWriteTimer = setTimeout(() => writeLinkedProjectFile(false), 250);
+    }
+    async function loadFromLinkedHandle(handle, { confirmReplace=false } = {}) {
+      const file = await handle.getFile();
+      if (!file.size) return false;
+      const parsed = JSON.parse(await file.text());
+      const incoming = parseProjectPayload(parsed);
+      if (confirmReplace && !confirm(`Load the project already stored in “${handle.name}”?\n\nOK = load that file\nCancel = keep this browser project and overwrite the file`)) return false;
+      state = incoming;
+      saveLocalOnly();
+      onlyUnscheduled = false;
+      $('#search').value = '';
+      $('#groupFilter').value = 'all';
+      return true;
+    }
+    async function connectProjectFile() {
+      if (localSaveFailed || !fileSystemSupported()) return exportProject();
+      try {
+        if (linkedFileHandle) {
+          const granted = await filePermission(linkedFileHandle, true);
+          if (granted) {
+            let loaded = false;
+            try { loaded = await loadFromLinkedHandle(linkedFileHandle); } catch (err) { console.warn('Could not read linked project file; keeping browser copy.', err); }
+            if (!loaded && !(await writeLinkedProjectFile(false))) return;
+            updateFileStatus('linked', linkedFileHandle.name);
+            render();
+            toast(loaded ? 'Project file reconnected and loaded' : 'Project file reconnected');
+            return;
+          }
+        }
+        const handle = await window.showSaveFilePicker({
+          suggestedName: `${safeFileName(state.project.name)}.project.json`,
+          types: [{ description: 'Project Timeline file', accept: { 'application/json': ['.json'] } }]
+        });
+        linkedFileHandle = handle;
+        await storeLinkedFileHandle(handle);
+        const existing = await handle.getFile();
+        let loadedExisting = false;
+        if (existing.size) {
+          try { loadedExisting = await loadFromLinkedHandle(handle, { confirmReplace: true }); } catch (err) { console.warn('Existing file is not a project file; it will be replaced.', err); }
+        }
+        if (!loadedExisting && !(await writeLinkedProjectFile(false))) return;
+        updateFileStatus('linked', handle.name);
+        render();
+        toast(loadedExisting ? 'Project file connected and loaded' : 'Project file connected');
+      } catch (err) {
+        if (err?.name !== 'AbortError') { console.error(err); alert('Could not connect the project file.'); }
+      }
+    }
+    async function restoreLinkedProjectFile() {
+      if (!fileSystemSupported()) { updateFileStatus('local'); return; }
+      const initialState = JSON.stringify(state);
+      try {
+        await retryFileOperation(async () => {
+        linkedFileHandle = await getStoredLinkedFileHandle();
+        if (!linkedFileHandle) return;
+        if (!(await filePermission(linkedFileHandle, false))) {
+          throw new DOMException('File access needs reconnecting', 'NotAllowedError');
+        }
+        const file = await linkedFileHandle.getFile();
+        if (!file.size) throw new Error('Connected project file is empty');
+        const incoming = parseProjectPayload(JSON.parse(await file.text()));
+        if (JSON.stringify(state) !== initialState) throw new Error('Project changed during reconnect; local edits preserved');
+        state = incoming;
+        saveLocalOnly();
+        });
+        if (!linkedFileHandle) { updateFileStatus('local'); return; }
+        updateFileStatus('linked', linkedFileHandle.name);
+      } catch (err) {
+        console.error('Could not restore linked project file:', err);
+        updateFileStatus(err?.name === 'NotAllowedError' ? 'permission' : 'error', linkedFileHandle?.name);
+      }
+    }
+    function safeFileName(s='Project Timeline') {
+      return s.trim().replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, ' ').slice(0, 80) || 'Project Timeline';
+    }
+    function exportProject() {
+      save();
+      const payload = makeProjectPayload();
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const date = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `${safeFileName(state.project.name)} - ${date}.project.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      toast('Project backup download started');
+    }
+    async function importProject(file) {
+      if (!file) return;
+      try {
+        const parsed = JSON.parse(await file.text());
+        const incoming = parseProjectPayload(parsed);
+        if (!confirm('Load this project? It will replace the project currently saved in this browser.')) return;
+        state = incoming;
+        save();
+        onlyUnscheduled = false;
+        $('#search').value = '';
+        $('#groupFilter').value = 'all';
+        render();
+        toast('Project loaded');
+      } catch (err) {
+        console.error(err);
+        alert('Could not load that project file. Please choose a .project.json backup created by this app.');
+      } finally {
+        $('#projectFileInput').value = '';
+      }
+    }
+
+    function render() {
+      document.documentElement.style.setProperty('--day-px', state.project.dayPx + 'px');
+      document.documentElement.style.setProperty('--timeline-w', (state.project.daysVisible * state.project.dayPx) + 'px');
+      $('#projectName').textContent = state.project.name;
+      $('#managerName').textContent = state.project.manager;
+      $('#companyName').textContent = state.project.company;
+      $('#projectDateText').textContent = niceDate(state.project.startDate);
+      $('#startDate').value = state.project.startDate;
+      $('#daysVisible').value = String(state.project.daysVisible);
+      $('#zoomRange').value = String(state.project.dayPx);
+      $('#zoomLabel').textContent = `${state.project.dayPx}px / day`;
+      $('#totalTasks').textContent = state.tasks.length;
+      $('#verifiedCount').textContent = `${state.tasks.length} Tasks verified`;
+      const products = new Set(state.tasks.map(t => (t.product||'').trim()).filter(Boolean));
+      $('#totalProducts').textContent = products.size;
+      $('#unscheduledBtn').textContent = `◷ Unscheduled (${state.tasks.filter(t=>!t.start).length})`;
+      $('#unscheduledBtn').className = 'btn ' + (onlyUnscheduled ? 'blue' : 'ghost');
+      $('#hideFinishedBtn').className = 'btn ' + (state.project.hideFinished ? 'blue' : 'ghost');
+      $('#hideFinishedBtn').setAttribute('aria-pressed', String(!!state.project.hideFinished));
+      populateFilters();
+      renderSchedule();
+    }
+
+    function populateFilters() {
+      const current = $('#groupFilter').value || 'all';
+      $('#groupFilter').innerHTML = '<option value="all">All Project Groups</option>' + state.groups.map(g=>`<option value="${g.id}">${esc(g.name)}</option>`).join('');
+      if ([...$('#groupFilter').options].some(o=>o.value===current)) $('#groupFilter').value=current;
+      $('#taskGroupInput').innerHTML = state.groups.map(g=>`<option value="${g.id}">${esc(g.name)}</option>`).join('');
+    }
+
+    function visibleTasksForGroup(gid) {
+      const q = $('#search').value.trim().toLowerCase();
+      const gf = $('#groupFilter').value;
+      if (gf !== 'all' && gf !== gid) return [];
+      return state.tasks.filter(t => t.groupId===gid)
+        .filter(t => !state.project.hideFinished || normalizeTaskStatus(t) !== 'finish')
+        .filter(t => !onlyUnscheduled || !t.start)
+        .filter(t => !q || `${t.title} ${t.product}`.toLowerCase().includes(q))
+        .sort((a, b) => {
+          if (!a.start) return b.start ? 1 : 0;
+          if (!b.start) return -1;
+          return a.start.localeCompare(b.start);
+        });
+    }
+
+    function renderSchedule() {
+      const start = normalizeToBusinessDay(state.project.startDate);
+      const days = getVisibleBusinessDays(start, state.project.daysVisible);
+      const schedule = $('#schedule');
+      let html = '';
+      const todayColumn = todayColumnHTML(start, state.project.daysVisible);
+
+      const monthBands = [];
+      let bandStart = 0, bandName = '';
+      days.forEach((ds,i)=>{
+        const d=parseDate(ds); const name=d.toLocaleDateString(undefined,{month:'short',year:'numeric',timeZone:'UTC'}).toUpperCase();
+        if (i===0) { bandName=name; bandStart=0; }
+        if (name!==bandName) { monthBands.push({name:bandName,start:bandStart,len:i-bandStart}); bandName=name; bandStart=i; }
+        if (i===days.length-1) monthBands.push({name:bandName,start:bandStart,len:i-bandStart+1});
+      });
+      html += `<div class="row month-row"><div class="sticky-left header-left">TASK & LINKED PRODUCT</div><div class="timeline">${todayColumn}${monthBands.map(b=>`<div class="month-band" style="left:${b.start*state.project.dayPx}px;width:${b.len*state.project.dayPx}px">${b.name}</div>`).join('')}</div></div>`;
+      html += `<div class="row weekday-row"><div class="sticky-left header-left">WEEKDAY TIMELINE</div><div class="timeline">${todayColumn}${days.map(ds=>{
+        const d=parseDate(ds), dow=d.toLocaleDateString(undefined,{weekday:'short',timeZone:'UTC'}).toUpperCase(), dom=d.getUTCDate();
+        const today = ds===new Date().toISOString().slice(0,10);
+        return `<div class="day-cell ${today?'today':''}"><div class="dow">${dow}</div><div class="dom">${dom}</div></div>`;
+      }).join('')}</div></div>`;
+
+      let groupsRendered = 0;
+      state.groups.forEach((g, gi) => {
+        const tasks = visibleTasksForGroup(g.id);
+        const gf = $('#groupFilter').value;
+        const q = $('#search').value.trim();
+        if ((gf!=='all' && gf!==g.id) || ((q || onlyUnscheduled) && tasks.length===0)) return;
+        groupsRendered++;
+        const groupTones = getGroupToneSet(g.id);
+        html += `<div class="row group-row" style="--group-header:${groupTones.headerBg};--group-timeline:${groupTones.timelineBg};">
+          <div class="sticky-left" style="background:${groupTones.headerBg}"><div class="group-main"><span aria-hidden="true">⠿</span><span class="group-name" title="${esc(g.name)}">${esc(g.name)}</span><span class="group-count">(${tasks.length})</span></div>
+            <div class="group-actions">
+              <button class="icon-btn" data-action="collapse-group" data-id="${g.id}" title="Collapse">${g.collapsed?'▾':'▴'}</button>
+              <button class="icon-btn" data-action="move-group-up" data-id="${g.id}" title="Move up">↑</button>
+              <button class="icon-btn" data-action="move-group-down" data-id="${g.id}" title="Move down">↓</button>
+              <button class="icon-btn" data-action="edit-group" data-id="${g.id}" title="Edit">✎</button>
+              <button class="icon-btn danger" data-action="delete-group" data-id="${g.id}" title="Delete">⌫</button>
+            </div>
+          </div>
+          <div class="timeline" style="background:${groupTones.timelineBg}">${todayColumn}</div>
+        </div>`;
+        if (!g.collapsed) {
+          tasks.forEach(t => {
+            const status = normalizeTaskStatus(t);
+            const statusMeta = getTaskStatusMeta(status);
+            const isFinished = status === 'finish';
+            const pos = t.start ? businessDiffDays(t.start, start) : 0;
+            const left = pos * state.project.dayPx + 4;
+            const width = Math.max(42, t.duration * state.project.dayPx - 8);
+            const offscreen = t.start && (pos >= state.project.daysVisible || pos + t.duration <= 0);
+            const tones = getTaskToneSet(t.groupId);
+            const compactBar = width < 112;
+            const tinyBar = width < 76;
+            html += `<div class="row task-row ${isFinished ? 'is-finished' : ''}" data-task-row="${t.id}" style="--task-soft:${tones.soft};--task-lane:${tones.lane};--task-chip-bg:${tones.chipBg};--task-chip-border:${tones.chipBorder};">
+              <div class="sticky-left">
+                <div class="drag-dot">⠿</div>
+                <div class="task-left">
+                  <div class="task-titleline"><span class="index-badge">#${t.index}</span><input class="task-title-input" data-id="${t.id}" value="${esc(t.title)}" title="Click to rename this subtask" aria-label="Subtask name"></div>
+                  <div class="task-controls">
+                    <input class="mini task-date" data-id="${t.id}" type="date" value="${t.start||''}" aria-label="Start date">
+                    <button class="mini" data-action="edit-task" data-id="${t.id}" title="Edit duration">${t.duration}d</button>
+                    <button class="mini finish-btn status-${status}" data-action="toggle-status" data-id="${t.id}" title="Click to cycle status: Reopen → To Be Done → Ongoing → Finish">${statusMeta.button}</button>
+                    <button class="mini task-more" data-action="task-menu" data-id="${t.id}" aria-label="More task actions" aria-expanded="false">•••</button>
+                  </div>
+                </div>
+              </div>
+              <div class="timeline">${todayColumn}
+                ${offscreen ? '' : `<div class="bar ${!t.start?'unscheduled':''} ${isFinished ? 'is-finished' : ''} ${compactBar ? 'compact' : ''} ${tinyBar ? 'tiny' : ''}" data-bar-id="${t.id}" title="${esc(t.title)} • ${statusMeta.label} • ${t.duration}d" style="left:${t.start?left:8}px;width:${t.start?width:130}px;background:${tones.barColor}"><span class="bar-title">${esc(t.title)}</span><span class="duration">${t.duration}d</span>${t.start?'<span class="resize"></span>':''}</div>`}
+              </div>
+            </div>`;
+          });
+        }
+      });
+      if (!groupsRendered) html += `<div class="empty">No tasks match your current filters.</div>`;
+      schedule.innerHTML = html;
+      wireRows();
+    }
+
+    function wireRows() {
+      document.querySelectorAll('[data-action]').forEach(el => el.addEventListener('click', handleAction));
+      document.querySelectorAll('.task-date').forEach(el => el.addEventListener('change', e => {
+        const t = state.tasks.find(x=>x.id===e.target.dataset.id); if (!t) return; t.start = e.target.value ? normalizeToBusinessDay(e.target.value) : null; save(); render(); toast('Task date updated');
+      }));
+      document.querySelectorAll('.task-title-input').forEach(el => {
+        const commit = () => {
+          const t = state.tasks.find(x=>x.id===el.dataset.id);
+          if (!t) return;
+          const name = el.value.trim();
+          if (!name) { el.value = t.title; toast('Subtask name cannot be empty'); return; }
+          if (name === t.title) return;
+          t.title = name; t.product = name; save(); render(); toast('Task title and linked product renamed');
+        };
+        el.addEventListener('change', commit);
+        el.addEventListener('keydown', e => {
+          if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+          if (e.key === 'Escape') { const t=state.tasks.find(x=>x.id===el.dataset.id); if (t) el.value=t.title; el.blur(); }
+        });
+      });
+      document.querySelectorAll('.bar').forEach(bar => wireBarDrag(bar));
+    }
+
+    function openTaskMenu(trigger, id) {
+      const t = state.tasks.find(x => x.id === id);
+      if (!t) return;
+      document.querySelector('.task-action-menu')?.remove();
+      const menu = document.createElement('div');
+      menu.className = 'task-action-menu';
+      menu.setAttribute('popover', 'auto');
+      menu.setAttribute('aria-label', 'Task actions');
+      const actions = [['edit-task', '✎ Edit task / duration']];
+      if (t.fileLocation) actions.push(['copy-file-location', '📁 Copy file location']);
+      if (t.webLink) actions.push(['open-web-link', '🔗 Open web link']);
+      if (t.note) actions.push(['view-note', '📝 View notes']);
+      actions.forEach(([action, label]) => {
+        const button = document.createElement('button');
+        button.textContent = label;
+        button.dataset.action = action;
+        button.dataset.id = id;
+        button.addEventListener('click', event => { menu.hidePopover(); handleAction(event); });
+        menu.append(button);
+      });
+      document.body.append(menu);
+      if (!menu.showPopover) { menu.remove(); openTaskDialog(id); return; }
+      menu.addEventListener('toggle', event => {
+        trigger.setAttribute('aria-expanded', String(event.newState === 'open'));
+        if (event.newState === 'closed') menu.remove();
+      });
+      menu.showPopover();
+      const rect = trigger.getBoundingClientRect();
+      menu.style.left = Math.max(8, Math.min(rect.right - menu.offsetWidth, innerWidth - menu.offsetWidth - 8)) + 'px';
+      menu.style.top = Math.max(8, Math.min(rect.bottom + 4, innerHeight - menu.offsetHeight - 8)) + 'px';
+      menu.querySelector('button').focus();
+    }
+
+    function handleAction(e) {
+      const a=e.currentTarget.dataset.action, id=e.currentTarget.dataset.id;
+      if (a==='task-menu') return openTaskMenu(e.currentTarget, id);
+      if (a==='edit-task') return openTaskDialog(id);
+      if (a==='copy-file-location') {
+        const t=state.tasks.find(x=>x.id===id); if (!t?.fileLocation) return;
+        copyText(t.fileLocation).then(ok => toast(ok ? 'File location copied' : 'Could not copy file location')); return;
+      }
+      if (a==='open-web-link') {
+        const t=state.tasks.find(x=>x.id===id); if (!t?.webLink) return;
+        window.open(normalizeWebLink(t.webLink), '_blank', 'noopener,noreferrer'); return;
+      }
+      if (a==='view-note') return openTaskNote(id);
+      if (a==='shift-date') {
+        const t=state.tasks.find(x=>x.id===id); if (!t) return;
+        const n=Number(e.currentTarget.dataset.days);
+        const base=t.start || state.project.startDate;
+        t.start=addBusinessDays(base,n);
+        save(); render(); toast(`Task moved ${Math.abs(n)} day${Math.abs(n)===1?'':'s'} ${n<0?'earlier':'later'}`); return;
+      }
+      if (a==='change-duration') {
+        const t=state.tasks.find(x=>x.id===id); if (!t) return;
+        const n=Number(e.currentTarget.dataset.days);
+        t.duration = Math.max(1, t.duration + n);
+        save(); render(); toast(`Duration ${n < 0 ? 'reduced' : 'increased'} to ${t.duration} day${t.duration === 1 ? '' : 's'}`); return;
+      }
+      if (a==='toggle-status') {
+        const t=state.tasks.find(x=>x.id===id); if (!t) return;
+        t.status = nextTaskStatus(normalizeTaskStatus(t));
+        save(); render(); toast(`Task status: ${getTaskStatusMeta(t.status).label}`); return;
+      }
+      if (a==='collapse-group') { const g=state.groups.find(x=>x.id===id); g.collapsed=!g.collapsed; save(); render(); return; }
+      if (a==='edit-group') return openGroupDialog(id);
+      if (a==='delete-group') {
+        const g=state.groups.find(x=>x.id===id); const n=state.tasks.filter(t=>t.groupId===id).length;
+        if (confirm(`Delete “${g.name}” and its ${n} task(s)?`)) { state.groups=state.groups.filter(x=>x.id!==id); state.tasks=state.tasks.filter(t=>t.groupId!==id); save(); render(); }
+        return;
+      }
+      if (a==='move-group-up' || a==='move-group-down') {
+        const i=state.groups.findIndex(x=>x.id===id), j=i+(a==='move-group-up'?-1:1); if (j<0||j>=state.groups.length) return;
+        [state.groups[i],state.groups[j]]=[state.groups[j],state.groups[i]]; save(); render(); return;
+      }
+    }
+
+    function wireBarDrag(bar) {
+      const id = bar.dataset.barId;
+      const resize = bar.querySelector('.resize');
+      const startPointer = (ev, mode) => {
+        if (ev.button!==0) return;
+        ev.preventDefault(); ev.stopPropagation();
+        const t=state.tasks.find(x=>x.id===id); if (!t || !t.start) return;
+        const x0=ev.clientX, start0=t.start, dur0=t.duration;
+        const move=(e)=>{
+          const dayDelta=Math.round((e.clientX-x0)/state.project.dayPx);
+          if (mode==='move') t.start=addBusinessDays(start0,dayDelta);
+          else t.duration=Math.max(1,dur0+dayDelta);
+          renderSchedule();
+        };
+        const up=()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); save(); render(); toast(mode==='move'?'Task moved':'Duration updated'); };
+        window.addEventListener('pointermove',move); window.addEventListener('pointerup',up);
+      };
+      bar.addEventListener('pointerdown', ev=>{ if (ev.target.classList.contains('resize')) return; startPointer(ev,'move'); });
+      if (resize) resize.addEventListener('pointerdown', ev=>startPointer(ev,'resize'));
+    }
+
+    function openGroupDialog(id=null) {
+      editingGroupId=id;
+      const g=id?state.groups.find(x=>x.id===id):null;
+      $('#groupModalTitle').textContent=g?'Edit project group':'Add project group';
+      $('#groupNameInput').value=g?.name||'';
+      $('#groupTintInput').value=g?.tint||'#e8f7fb';
+      $('#groupDialog').showModal();
+    }
+    function saveGroup() {
+      const name=$('#groupNameInput').value.trim(); if (!name) return $('#groupNameInput').focus();
+      if (editingGroupId) { const g=state.groups.find(x=>x.id===editingGroupId); g.name=name; g.tint=$('#groupTintInput').value; }
+      else state.groups.push({id:uid('g'),name,tint:$('#groupTintInput').value,collapsed:false});
+      save(); $('#groupDialog').close(); render(); toast(editingGroupId?'Group updated':'Group added');
+    }
+
+    function openTaskDialog(id=null) {
+      if (!state.groups.length) { toast('Add a group first'); return; }
+      editingTaskId=id;
+      const t=id?state.tasks.find(x=>x.id===id):null;
+      $('#taskModalTitle').textContent=t?'Edit task':'Add task';
+      $('#taskTitleInput').value=t?.title||'';
+      $('#taskGroupInput').value=t?.groupId||state.groups[0].id;
+      $('#taskStartInput').value=t?.start||normalizeToBusinessDay(state.project.startDate);
+      $('#taskDurationInput').value=t?.duration||4;
+      $('#taskIndexInput').value=t?.index||1;
+      $('#taskStatusInput').value=normalizeTaskStatus(t || {});
+      $('#taskFileLocationInput').value=t?.fileLocation||'';
+      $('#taskWebLinkInput').value=t?.webLink||'';
+      $('#taskNoteInput').value=t?.note||'';
+      $('#deleteTaskBtn').style.display=t?'inline-flex':'none';
+      $('#taskDialog').showModal();
+    }
+    function saveTask() {
+      const title=$('#taskTitleInput').value.trim(); if (!title) return $('#taskTitleInput').focus();
+      const data={
+        groupId:$('#taskGroupInput').value,
+        title, product:title,
+        start:$('#taskStartInput').value ? normalizeToBusinessDay($('#taskStartInput').value) : null,
+        duration:Math.max(1,Number($('#taskDurationInput').value)||1),
+        index:Math.max(1,Number($('#taskIndexInput').value)||1),
+        fileLocation:$('#taskFileLocationInput').value.trim(),
+        webLink:$('#taskWebLinkInput').value.trim(),
+        note:$('#taskNoteInput').value.trim(),
+        color:getTaskToneSet($('#taskGroupInput').value).barColor,
+        status:$('#taskStatusInput').value || (editingTaskId ? normalizeTaskStatus(state.tasks.find(x=>x.id===editingTaskId)) : 'todo')
+      };
+      if (editingTaskId) Object.assign(state.tasks.find(x=>x.id===editingTaskId),data);
+      else state.tasks.push({id:uid('t'),...data});
+      save(); $('#taskDialog').close(); render(); toast(editingTaskId?'Task updated':'Task added');
+    }
+
+    $('#closeNoteBtn').addEventListener('click',()=>$('#noteDialog').close());
+    $('#doneNoteBtn').addEventListener('click',()=>$('#noteDialog').close());
+    $('#editNoteTaskBtn').addEventListener('click',()=>{ const id=noteTaskId; $('#noteDialog').close(); if (id) openTaskDialog(id); });
+    $('#themeToggleBtn').addEventListener('click', toggleTheme);
+    $('#headerToggleBtn').addEventListener('click', toggleHeaderCollapse);
+    $('#statusFloatBtn').addEventListener('click', () => showFloatingNotice(5000));
+    $('#projectNotice').addEventListener('mouseenter', () => { if ($('.app')?.classList.contains('header-collapsed')) { clearTimeout(floatingNoticeTimer); $('#projectNotice').classList.add('float-show'); } });
+    $('#projectNotice').addEventListener('mouseleave', () => { if ($('.app')?.classList.contains('header-collapsed')) showFloatingNotice(1800); });
+    $('#fileSyncBtn').addEventListener('click', connectProjectFile);
+    $('#saveProjectBtn').addEventListener('click', exportProject);
+    $('#loadProjectBtn').addEventListener('click', () => $('#projectFileInput').click());
+    $('#projectFileInput').addEventListener('change', e => importProject(e.target.files?.[0]));
+    $('#addGroupBtn').addEventListener('click',()=>openGroupDialog());
+    $('#addTaskBtn').addEventListener('click',()=>openTaskDialog());
+    $('#saveGroupBtn').addEventListener('click',saveGroup);
+    $('#saveTaskBtn').addEventListener('click',saveTask);
+    $('#deleteTaskBtn').addEventListener('click',()=>{
+      if (!editingTaskId) return; const t=state.tasks.find(x=>x.id===editingTaskId);
+      if (confirm(`Delete “${t.title}”?`)) { state.tasks=state.tasks.filter(x=>x.id!==editingTaskId); save(); $('#taskDialog').close(); render(); toast('Task deleted'); }
+    });
+    $('#startDate').addEventListener('change',e=>{ state.project.startDate=normalizeToBusinessDay(e.target.value || demo.project.startDate); save(); render(); });
+    $('#daysVisible').addEventListener('change',e=>{ state.project.daysVisible=Number(e.target.value); save(); render(); });
+    $('#zoomRange').addEventListener('input',e=>{ state.project.dayPx=Number(e.target.value); render(); });
+    $('#zoomRange').addEventListener('change',()=>save());
+    $('#search').addEventListener('input',renderSchedule);
+    $('#groupFilter').addEventListener('change',renderSchedule);
+    $('#unscheduledBtn').addEventListener('click',()=>{ onlyUnscheduled=!onlyUnscheduled; render(); });
+    $('#hideFinishedBtn').addEventListener('click',()=>{ state.project.hideFinished=!state.project.hideFinished; save(); render(); });
+
+    // Tiny power-user shortcut: Ctrl/Cmd+N adds a task.
+    window.addEventListener('keydown', e=>{
+      if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s') {
+        e.preventDefault();
+        if (linkedFileHandle && fileSystemSupported() && !localSaveFailed) { saveLocalOnly(); writeLinkedProjectFile(true); }
+        else exportProject();
+      }
+      if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='n') { e.preventDefault(); openTaskDialog(); }
+    });
+
+    async function initializeApp() {
+      applyTheme(state.project.theme);
+      applyHeaderCollapse(state.project.headerCollapsed, false);
+      await restoreLinkedProjectFile();
+      applyTheme(state.project.theme);
+      applyHeaderCollapse(state.project.headerCollapsed, false);
+      render();
+    }
+    initializeApp();
+  </script>
+</body>
+</html>
