@@ -432,6 +432,10 @@
     const STORAGE_KEY = 'projectTimelineManager.v1';
     const CLOUD_CONFIG_KEY = 'projectTimelineManager.cloudConfig.v1';
     const CLOUD_SESSION_KEY = 'projectTimelineManager.cloudSession.v1';
+    const CLOUD_DEFAULT = {
+      url: 'https://vlrmatnlpiolvwvqzgap.supabase.co',
+      key: 'sb_publishable_ysOuFAPebAQeLVnnCMRFbg_AgGCV-8E'
+    };
     const MS_DAY = 86400000;
     const TASK_STATUS_ORDER = ['reopen', 'todo', 'ongoing', 'finish'];
     const TASK_STATUS_META = {
@@ -1301,7 +1305,7 @@
     });
 
     // Cloud storage is optional. The public key is scoped by Supabase Auth and RLS.
-    let cloudConfig = JSON.parse(localStorage.getItem(CLOUD_CONFIG_KEY) || 'null');
+    let cloudConfig = JSON.parse(localStorage.getItem(CLOUD_CONFIG_KEY) || 'null') || CLOUD_DEFAULT;
     let cloudSession = JSON.parse(localStorage.getItem(CLOUD_SESSION_KEY) || 'null');
     let cloudRevision = null;
     let cloudReady = false;
@@ -1410,7 +1414,7 @@
       const email = $('#cloudEmail').value.trim();
       if (!email) return cloudMessage('Enter your email address.');
       try {
-        await cloudRequest('/auth/v1/otp', {method:'POST',headers:cloudHeaders(false),body:JSON.stringify({email,create_user:true,options:{email_redirect_to:location.origin + location.pathname}})});
+        await cloudRequest('/auth/v1/otp?redirect_to=' + encodeURIComponent(location.origin + location.pathname), {method:'POST',headers:cloudHeaders(false),body:JSON.stringify({email,create_user:true})});
         cloudMessage('Check your email and open the sign-in link. If on another device, open the link on the device you want to sign in.');
       } catch (err) { cloudMessage(err.message); }
     }
