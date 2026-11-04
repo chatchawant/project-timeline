@@ -1439,7 +1439,11 @@
     $('#cloudConfigureBtn').addEventListener('click', async () => {
       const url=$('#cloudUrl').value.trim().replace(/\/$/, '');
       const key=$('#cloudKey').value.trim();
-      if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url) || !/^(sb_publishable_|eyJ)/.test(key)) return cloudMessage('Enter a Supabase project URL and publishable (or legacy anon) key.');
+      let safeKey = /^sb_publishable_[A-Za-z0-9_-]+$/.test(key);
+      if (!safeKey && key.startsWith('eyJ')) {
+        try { safeKey = JSON.parse(atob(key.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).role === 'anon'; } catch (_) {}
+      }
+      if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url) || !safeKey) return cloudMessage('Enter a Supabase project URL and publishable (or legacy anon) key. Never use a secret or service-role key.');
       if (cloudConfig?.url !== url || cloudConfig?.key !== key) { cloudSession=null; cloudReady=false; localStorage.removeItem(CLOUD_SESSION_KEY); }
       cloudConfig={url,key}; localStorage.setItem(CLOUD_CONFIG_KEY,JSON.stringify(cloudConfig));
       cloudMessage('Connection saved on this device. Sign in with your email.');
