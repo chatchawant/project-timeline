@@ -344,6 +344,7 @@
         <button class="btn ghost" id="headerToggleBtn" title="Collapse the project header and keep only the controls visible">▴ Collapse Header</button>
         <button class="btn ghost" id="themeToggleBtn" title="Switch between light and dark mode">🌙 Dark Mode</button>
         <button class="btn ghost" id="fileSyncBtn" title="Choose a project data file once, then auto-save to it">📁 Connect File</button>
+        <button class="btn ghost" id="cloudBtn" title="Sign in and sync this project between devices">☁ Cloud sync</button>
         <button class="btn ghost" id="saveProjectBtn" title="Download a portable project backup">⇩ Backup</button>
         <button class="btn ghost" id="loadProjectBtn" title="Import a portable project backup">⇧ Import</button>
         <button class="btn dark" id="addGroupBtn">▣ Add Group</button>
@@ -408,10 +409,29 @@
     <div class="modal-foot"><button class="btn ghost" id="editNoteTaskBtn" type="button">✎ Edit task</button><button class="btn blue" id="doneNoteBtn" type="button">Done</button></div>
   </dialog>
 
+  <dialog id="cloudDialog" style="width:min(520px,calc(100vw - 32px))">
+    <div class="modal-head"><h2>☁ Cloud sync</h2><button class="icon-btn" id="closeCloudBtn" type="button">✕</button></div>
+    <div class="modal-body" style="display:grid;gap:12px">
+      <p id="cloudMessage" role="status">Connect a private database to sync this project across devices.</p>
+      <label>Supabase project URL<br><input class="control" id="cloudUrl" type="url" placeholder="https://your-project.supabase.co" style="width:100%"></label>
+      <label>Publishable API key<br><input class="control" id="cloudKey" type="text" autocomplete="off" placeholder="sb_publishable_…" style="width:100%"></label>
+      <button class="btn ghost" id="cloudConfigureBtn" type="button">Save connection settings</button>
+      <label>Email for sign-in link<br><input class="control" id="cloudEmail" type="email" autocomplete="email" placeholder="you@example.com" style="width:100%"></label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn blue" id="cloudSignInBtn" type="button">Email me a sign-in link</button><button class="btn ghost" id="cloudSignOutBtn" type="button">Sign out</button></div>
+      <div id="cloudFirstSync" hidden style="border:1px solid #64748b66;border-radius:9px;padding:12px">
+        <b>Choose the copy to keep</b><p id="cloudChoiceMessage">A cloud project is available.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn blue" id="cloudUseOnlineBtn" type="button">Use online project</button><button class="btn ghost" id="cloudUploadLocalBtn" type="button">Upload this device’s project</button></div>
+      </div>
+      <small>Keep your backup file until the first cloud save succeeds. The publishable key is safe for the website; never enter a secret or service-role key here.</small>
+    </div>
+  </dialog>
+
   <div class="toast" id="toast"></div>
 
   <script>
     const STORAGE_KEY = 'projectTimelineManager.v1';
+    const CLOUD_CONFIG_KEY = 'projectTimelineManager.cloudConfig.v1';
+    const CLOUD_SESSION_KEY = 'projectTimelineManager.cloudSession.v1';
     const MS_DAY = 86400000;
     const TASK_STATUS_ORDER = ['reopen', 'todo', 'ongoing', 'finish'];
     const TASK_STATUS_META = {
@@ -460,6 +480,7 @@
     function save() {
       saveLocalOnly();
       scheduleLinkedFileSave();
+      scheduleCloudSave();
     }
     function uid(prefix='id') { return prefix + Math.random().toString(36).slice(2, 9); }
     function parseDate(s) { if (!s) return null; const [y,m,d] = s.split('-').map(Number); return new Date(Date.UTC(y,m-1,d)); }
@@ -737,6 +758,7 @@
       const status = $('#fileStatus');
       const button = $('#fileSyncBtn');
       if (!status || !button) return;
+      if (cloudReady && !localSaveFailed) { setSyncAlarm(false); return; }
       if (localSaveFailed) {
         status.textContent = '🔴 Browser save failed — download a backup now';
         button.textContent = '⇩ Download backup';
@@ -1278,10 +1300,169 @@
       if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='n') { e.preventDefault(); openTaskDialog(); }
     });
 
+    // Cloud storage is optional. The public key is scoped by Supabase Auth and RLS.
+    let cloudConfig = JSON.parse(localStorage.getItem(CLOUD_CONFIG_KEY) || 'null');
+    let cloudSession = JSON.parse(localStorage.getItem(CLOUD_SESSION_KEY) || 'null');
+    let cloudRevision = null;
+    let cloudReady = false;
+    let cloudDirty = false;
+    let cloudTimer = null;
+    let cloudWriteQueue = Promise.resolve();
+    const CLOUD_SNAPSHOT_KEY = 'projectTimelineManager.cloudSnapshot.v1';
+    const cloudFingerprint = () => JSON.stringify(state);
+    function cloudMessage(message) { $('#cloudMessage').textContent = message; }
+    function cloudStatus(message, error=false) {
+      $('#cloudBtn').textContent = error ? '⚠ Cloud retry' : cloudReady ? '☁ Synced' : '☁ Cloud sync';
+      $('#cloudBtn').title = message;
+      const status = $('#fileStatus');
+      if (status && (cloudReady || error)) status.textContent = (error ? '🔴 ' : '✅ ') + message;
+      if (cloudReady || error) setSyncAlarm(error, error ? 'CLOUD SAVE FAILED — CHANGES ARE LOCAL' : '');
+      cloudMessage(message);
+    }
+    function cloudHeaders(auth=true) {
+      return { apikey: cloudConfig.key, Authorization: 'Bearer ' + (auth ? cloudSession.access_token : cloudConfig.key), 'Content-Type': 'application/json' };
+    }
+    async function cloudRequest(path, options={}) {
+      const response = await fetch(cloudConfig.url + path, options);
+      if (!response.ok) {
+        let detail = '';
+        try { const error = await response.json(); detail = error.msg || error.message || error.error_description || error.error || ''; } catch (_) {}
+        throw new Error(detail || `Cloud request failed (${response.status})`);
+      }
+      return response.status === 204 ? null : response.json();
+    }
+    async function cloudRefreshSession() {
+      if (!cloudSession?.refresh_token || !cloudConfig) return false;
+      if (cloudSession.expires_at && cloudSession.expires_at > Date.now() + 90000) return true;
+      try {
+        const result = await cloudRequest('/auth/v1/token?grant_type=refresh_token', {method:'POST', headers:cloudHeaders(false), body:JSON.stringify({refresh_token:cloudSession.refresh_token})});
+        cloudSession = {...result, expires_at:Date.now() + result.expires_in * 1000};
+        localStorage.setItem(CLOUD_SESSION_KEY, JSON.stringify(cloudSession));
+        return true;
+      } catch (err) { cloudStatus('Sign in again: ' + err.message, true); return false; }
+    }
+    async function cloudFetchRow() {
+      if (!(await cloudRefreshSession())) throw new Error('Please sign in again');
+      const rows = await cloudRequest('/rest/v1/project_timelines?select=data,revision&user_id=eq.' + encodeURIComponent(cloudSession.user.id), {headers:cloudHeaders()});
+      return rows[0] || null;
+    }
+    function cloudSnapshotKey() { return CLOUD_SNAPSHOT_KEY + ':' + cloudConfig.url + ':' + cloudSession.user.id; }
+    async function cloudReconcile() {
+      const beforeFetch = cloudFingerprint();
+      const row = await cloudFetchRow();
+      cloudRevision = row?.revision || null;
+      const prior = localStorage.getItem(cloudSnapshotKey());
+      const local = cloudFingerprint();
+      if (!row) {
+        cloudReady = false;
+        $('#cloudFirstSync').hidden = false;
+        $('#cloudUseOnlineBtn').hidden = true;
+        $('#cloudChoiceMessage').textContent = 'No cloud project yet. Upload this device’s project to start syncing.';
+        cloudStatus('Choose Upload this device’s project to start cloud sync');
+      } else if (prior && prior === local && beforeFetch === local) {
+        state = parseProjectPayload(row.data);
+        saveLocalOnly(); render();
+        localStorage.setItem(cloudSnapshotKey(), cloudFingerprint());
+        cloudReady = true;
+        $('#cloudFirstSync').hidden = true;
+        cloudStatus('Cloud synced');
+      } else {
+        cloudReady = false;
+        $('#cloudFirstSync').hidden = false;
+        $('#cloudUseOnlineBtn').hidden = false;
+        $('#cloudChoiceMessage').textContent = 'There are two copies. Choose the online project to load it here, or upload this device’s project to replace the online copy. Download a Backup first if unsure.';
+        cloudStatus('Choose which project copy to keep');
+      }
+    }
+    async function cloudWrite() {
+      if (!cloudConfig || !cloudSession || !cloudReady || !cloudDirty) return;
+      const snapshot = cloudFingerprint();
+      const nextRevision = crypto.randomUUID();
+      try {
+        if (!(await cloudRefreshSession())) return;
+        let rows;
+        if (cloudRevision) {
+          rows = await cloudRequest('/rest/v1/project_timelines?user_id=eq.' + encodeURIComponent(cloudSession.user.id) + '&revision=eq.' + encodeURIComponent(cloudRevision), {method:'PATCH', headers:{...cloudHeaders(),Prefer:'return=representation'}, body:JSON.stringify({data:makeProjectPayload(),revision:nextRevision})});
+          if (rows.length !== 1) throw new Error('Another device changed this project. Choose which copy to keep in Cloud sync.');
+        } else {
+          rows = await cloudRequest('/rest/v1/project_timelines', {method:'POST', headers:{...cloudHeaders(),Prefer:'return=representation'}, body:JSON.stringify({user_id:cloudSession.user.id,data:makeProjectPayload(),revision:nextRevision})});
+          if (rows.length !== 1) throw new Error('Could not create the cloud project');
+        }
+        cloudRevision = nextRevision;
+        localStorage.setItem(cloudSnapshotKey(), snapshot);
+        cloudDirty = cloudFingerprint() !== snapshot;
+        cloudStatus(cloudDirty ? 'Saving newer changes…' : 'Cloud synced');
+        if (cloudDirty) scheduleCloudSave();
+      } catch (err) {
+        cloudReady = false;
+        cloudStatus(err.message + ' — changes remain on this device', true);
+      }
+    }
+    function scheduleCloudSave() {
+      if (!cloudReady) return;
+      cloudDirty = true;
+      cloudStatus('Saving to cloud…');
+      clearTimeout(cloudTimer);
+      cloudTimer = setTimeout(() => { cloudWriteQueue = cloudWriteQueue.then(cloudWrite); }, 700);
+    }
+    async function cloudSignIn() {
+      if (!cloudConfig) return cloudMessage('Save your connection settings first.');
+      const email = $('#cloudEmail').value.trim();
+      if (!email) return cloudMessage('Enter your email address.');
+      try {
+        await cloudRequest('/auth/v1/otp', {method:'POST',headers:cloudHeaders(false),body:JSON.stringify({email,create_user:true,options:{email_redirect_to:location.origin + location.pathname}})});
+        cloudMessage('Check your email and open the sign-in link. If on another device, open the link on the device you want to sign in.');
+      } catch (err) { cloudMessage(err.message); }
+    }
+    async function cloudStart() {
+      const hash = new URLSearchParams(location.hash.slice(1));
+      if (hash.has('access_token') && hash.has('refresh_token')) {
+        cloudSession = {access_token:hash.get('access_token'),refresh_token:hash.get('refresh_token'),expires_in:Number(hash.get('expires_in') || 3600),expires_at:Date.now()+Number(hash.get('expires_in') || 3600)*1000};
+        history.replaceState(null, '', location.pathname + location.search);
+        try {
+          const user = await cloudRequest('/auth/v1/user', {headers:cloudHeaders()});
+          cloudSession.user = user;
+          localStorage.setItem(CLOUD_SESSION_KEY, JSON.stringify(cloudSession));
+          $('#cloudEmail').value = user.email || '';
+        } catch (err) { cloudMessage('Sign-in failed: ' + err.message); return; }
+      }
+      if (cloudConfig && cloudSession?.user) {
+        try { await cloudReconcile(); } catch (err) { cloudStatus(err.message + ' — changes remain on this device', true); }
+      }
+    }
+    $('#cloudBtn').addEventListener('click', () => {
+      $('#cloudUrl').value=cloudConfig?.url || ''; $('#cloudKey').value=cloudConfig?.key || '';
+      $('#cloudDialog').showModal();
+      if (cloudSession?.user && !cloudReady) cloudReconcile().catch(err => cloudMessage(err.message));
+    });
+    $('#closeCloudBtn').addEventListener('click', () => $('#cloudDialog').close());
+    $('#cloudConfigureBtn').addEventListener('click', async () => {
+      const url=$('#cloudUrl').value.trim().replace(/\/$/, '');
+      const key=$('#cloudKey').value.trim();
+      if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url) || !/^(sb_publishable_|eyJ)/.test(key)) return cloudMessage('Enter a Supabase project URL and publishable (or legacy anon) key.');
+      if (cloudConfig?.url !== url || cloudConfig?.key !== key) { cloudSession=null; cloudReady=false; localStorage.removeItem(CLOUD_SESSION_KEY); }
+      cloudConfig={url,key}; localStorage.setItem(CLOUD_CONFIG_KEY,JSON.stringify(cloudConfig));
+      cloudMessage('Connection saved on this device. Sign in with your email.');
+    });
+    $('#cloudSignInBtn').addEventListener('click',cloudSignIn);
+    $('#cloudSignOutBtn').addEventListener('click', () => { cloudReady=false; cloudSession=null; localStorage.removeItem(CLOUD_SESSION_KEY); $('#cloudFirstSync').hidden=true; cloudMessage('Signed out. This device still has its local copy.'); cloudStatus('Signed out — local copy only'); });
+    $('#cloudUseOnlineBtn').addEventListener('click', async () => {
+      try { const row=await cloudFetchRow(); if (!row) throw new Error('Cloud project is missing'); state=parseProjectPayload(row.data); cloudRevision=row.revision; saveLocalOnly(); render(); localStorage.setItem(cloudSnapshotKey(),cloudFingerprint()); cloudDirty=false; cloudReady=true; $('#cloudFirstSync').hidden=true; cloudStatus('Cloud synced'); $('#cloudDialog').close(); }
+      catch(err){ cloudMessage(err.message); }
+    });
+    $('#cloudUploadLocalBtn').addEventListener('click', async () => {
+      if (cloudRevision && !confirm('Replace the online project with this device’s copy? Download a Backup first if unsure.')) return;
+      cloudReady=true; cloudDirty=true; await cloudWrite();
+      if (cloudReady) { $('#cloudFirstSync').hidden=true; $('#cloudDialog').close(); }
+    });
+    window.addEventListener('online', () => { if (cloudSession?.user) { if (cloudReady) { cloudDirty=true; scheduleCloudSave(); } else cloudReconcile().catch(err => cloudStatus(err.message,true)); } });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && cloudSession?.user && cloudReady && !cloudDirty) cloudReconcile().catch(err => cloudStatus(err.message,true)); });
+
     async function initializeApp() {
       applyTheme(state.project.theme);
       applyHeaderCollapse(state.project.headerCollapsed, false);
-      await restoreLinkedProjectFile();
+      if (!cloudSession?.user) await restoreLinkedProjectFile();
+      await cloudStart();
       applyTheme(state.project.theme);
       applyHeaderCollapse(state.project.headerCollapsed, false);
       render();
