@@ -394,7 +394,10 @@
       <div class="modal-head"><h2 id="groupModalTitle">Add project group</h2><button class="icon-btn" value="cancel" type="submit">✕</button></div>
       <div class="modal-body">
         <div class="field"><label>Group name</label><input id="groupNameInput" required placeholder="e.g. New Year Gift Box"></div>
-        <div class="field"><label>Group tint</label><select id="groupTintInput"><option value="#e8f7fb">Aqua</option><option value="#fff9e7">Warm cream</option><option value="#eaf8ef">Mint</option><option value="#f5efff">Lavender</option><option value="#eef4ff">Blue</option></select></div>
+        <div class="field"><label for="groupTintInput">Group color</label><div style="display:flex;align-items:center;gap:10px">
+          <select id="groupTintInput" style="flex:1"><option value="#e8f7fb">Aqua</option><option value="#fff9e7">Warm cream</option><option value="#eaf8ef">Mint</option><option value="#f5efff">Lavender</option><option value="#eef4ff">Blue</option><option value="custom">Custom color</option></select>
+          <input id="groupColorInput" type="color" value="#e8f7fb" aria-label="Choose a custom group color" title="Choose a custom group color" style="width:46px;height:36px;padding:2px;border:1px solid var(--line-strong);border-radius:8px;background:var(--panel);cursor:pointer">
+        </div></div>
       </div>
       <div class="modal-foot"><button class="btn ghost" value="cancel" type="submit">Cancel</button><button class="btn blue" value="default" id="saveGroupBtn" type="button">Save group</button></div>
     </form>
@@ -1247,15 +1250,20 @@
       const g=id?state.groups.find(x=>x.id===id):null;
       $('#groupModalTitle').textContent=g?'Edit project group':'Add project group';
       $('#groupNameInput').value=g?.name||'';
-      $('#groupTintInput').value=g?.tint||'#e8f7fb';
+      const tint = /^#[0-9a-f]{6}$/i.test(g?.tint || '') ? g.tint : '#e8f7fb';
+      $('#groupColorInput').value=tint;
+      $('#groupTintInput').value=[...$('#groupTintInput').options].some(o=>o.value.toLowerCase()===tint.toLowerCase()) ? tint : 'custom';
       $('#groupDialog').showModal();
     }
     function saveGroup() {
       const name=$('#groupNameInput').value.trim(); if (!name) return $('#groupNameInput').focus();
-      if (editingGroupId) { const g=state.groups.find(x=>x.id===editingGroupId); g.name=name; g.tint=$('#groupTintInput').value; }
-      else state.groups.push({id:uid('g'),name,tint:$('#groupTintInput').value,collapsed:false});
+      const tint=$('#groupTintInput').value==='custom' ? $('#groupColorInput').value : $('#groupTintInput').value;
+      if (editingGroupId) { const g=state.groups.find(x=>x.id===editingGroupId); g.name=name; g.tint=tint; }
+      else state.groups.push({id:uid('g'),name,tint,collapsed:false});
       save(); $('#groupDialog').close(); render(); toast(editingGroupId?'Group updated':'Group added');
     }
+    $('#groupTintInput').addEventListener('change', e=>{ if (e.target.value !== 'custom') $('#groupColorInput').value=e.target.value; });
+    $('#groupColorInput').addEventListener('input', ()=>{ $('#groupTintInput').value='custom'; });
 
     function openTaskDialog(id=null) {
       if (!state.groups.length) { toast('Add a group first'); return; }
