@@ -1091,7 +1091,8 @@
                     <input class="mini task-date" data-id="${t.id}" type="date" value="${t.start||''}" aria-label="Start date">
                     <button class="mini" data-action="edit-task" data-id="${t.id}" title="Edit duration">${t.duration}d</button>
                     <button class="mini finish-btn status-${status}" data-action="toggle-status" data-id="${t.id}" title="Click to cycle status: Reopen → To Be Done → Ongoing → Finish">${statusMeta.button}</button>
-                    <button class="mini task-more" data-action="task-menu" data-id="${t.id}" aria-label="More task actions" aria-expanded="false">•••</button>
+                    ${t.fileLocation || t.webLink || t.note ? `<button class="mini task-more" data-action="task-menu" data-id="${t.id}" aria-label="File, link and note actions" aria-expanded="false">•••</button>` : ''}
+                    <button class="mini ${t.fileLocation || t.webLink || t.note ? '' : 'task-more'}" data-action="edit-task" data-id="${t.id}" aria-label="Edit task and duration" title="Edit task / duration">✎</button>
                   </div>
                 </div>
               </div>
@@ -1138,7 +1139,7 @@
       menu.className = 'task-action-menu';
       menu.setAttribute('popover', 'auto');
       menu.setAttribute('aria-label', 'Task actions');
-      const actions = [['edit-task', '✎ Edit task / duration']];
+      const actions = [];
       if (t.fileLocation) actions.push(['copy-file-location', '📁 Copy file location']);
       if (t.webLink) actions.push(['open-web-link', '🔗 Open web link']);
       if (t.note) actions.push(['view-note', '📝 View notes']);
