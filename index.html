@@ -15,7 +15,7 @@
       --blue: #3567e9;
       --blue-soft: #eef4ff;
       --shadow: 0 8px 24px rgba(15, 23, 42, .06);
-      --left-col: 500px;
+      --left-col: 560px;
       --day-px: 32px;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
@@ -295,7 +295,7 @@
     html[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.85); }
 
     @media (max-width: 800px) {
-      :root { --left-col: 500px; }
+      :root { --left-col: 560px; }
       .stats { width: 100%; }
       .topbar { align-items: flex-start; flex-direction: column; }
       .stat { flex: 1; }
@@ -307,12 +307,13 @@
     .task-row .sticky-left { height: 46px; padding: 7px 10px; gap: 6px; align-items: center; }
     .task-row .timeline { height: 46px; }
     .task-row .task-left { display: flex; align-items: center; gap: 6px; }
-    .task-row .task-titleline { flex: 1 1 auto; min-width: 85px; }
+    .task-row .task-titleline { flex: 1 1 0; min-width: 0; }
     .task-row .task-title-input { width: 100%; }
     .task-controls { margin-top: 0; gap: 5px; flex-wrap: nowrap; max-height: none; }
     .task-controls > * { flex-shrink: 0; }
     .task-controls .task-date { width: 108px; min-width: 0; padding: 0 4px; font-size: 10px; }
     .task-controls .mini { height: 23px; }
+    .task-controls .finish-btn { padding-inline: 5px; font-size: 9px; }
     .task-more { letter-spacing: 1px; }
     .task-row .bar { top: 8px; height: 30px; }
     .task-action-menu { position: fixed; inset: auto; margin: 0; padding: 5px; width: 180px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--text); box-shadow: 0 8px 28px #0003; }
@@ -1077,6 +1078,7 @@
         html += `<div class="row group-row" style="--group-header:${groupTones.headerBg};--group-timeline:${groupTones.timelineBg};">
           <div class="sticky-left" style="background:${groupTones.headerBg}"><div class="group-main"><span aria-hidden="true">⠿</span><span class="group-name" title="${esc(g.name)}">${esc(g.name)}</span><span class="group-count">(${tasks.length})</span></div>
             <div class="group-actions">
+              <button class="icon-btn" data-action="quick-add-task" data-id="${g.id}" title="Quick add a 3-day task starting today" aria-label="Quick add task to ${esc(g.name)}">＋</button>
               <button class="icon-btn" data-action="collapse-group" data-id="${g.id}" title="Collapse">${g.collapsed?'▾':'▴'}</button>
               <button class="icon-btn" data-action="move-group-up" data-id="${g.id}" title="Move up">↑</button>
               <button class="icon-btn" data-action="move-group-down" data-id="${g.id}" title="Move down">↓</button>
@@ -1210,6 +1212,22 @@
         const t=state.tasks.find(x=>x.id===id); if (!t) return;
         t.status = nextTaskStatus(normalizeTaskStatus(t));
         save(); render(); toast(`Task status: ${getTaskStatusMeta(t.status).label}`); return;
+      }
+      if (a==='quick-add-task') {
+        const g=state.groups.find(x=>x.id===id); if (!g) return;
+        const now=new Date();
+        const localToday=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        const start=normalizeToBusinessDay(localToday);
+        const nextIndex=Math.max(0,...state.tasks.filter(t=>t.groupId===id).map(t=>Number(t.index)||0))+1;
+        const task={id:uid('t'),groupId:id,index:nextIndex,title:'New task',product:'New task',start,duration:3,status:'todo',fileLocation:'',webLink:'',note:'',color:getTaskToneSet(id).barColor};
+        state.tasks.push(task); g.collapsed=false;
+        if (businessDiffDays(start,state.project.startDate)<0 || businessDiffDays(start,state.project.startDate)>=state.project.daysVisible) state.project.startDate=start;
+        onlyUnscheduled=false; $('#search').value='';
+        if ($('#groupFilter').value!=='all' && $('#groupFilter').value!==id) $('#groupFilter').value=id;
+        save(); render(); toast(`New task added to ${g.name}`);
+        const title=document.querySelector(`.task-title-input[data-id="${task.id}"]`);
+        title?.focus(); title?.select();
+        return;
       }
       if (a==='collapse-group') { const g=state.groups.find(x=>x.id===id); g.collapsed=!g.collapsed; save(); render(); return; }
       if (a==='edit-group') return openGroupDialog(id);
