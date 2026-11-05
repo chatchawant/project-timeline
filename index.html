@@ -80,6 +80,11 @@
     .btn.ghost { background: #f8fafc; color: #334155; border: 1px solid var(--line-strong); }
     .zoom { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: 9px; background: #fff; font-size: 11px; }
     .zoom input { width: 90px; }
+    .backup-menu { position: relative; }
+    .backup-menu summary { display: flex; align-items: center; cursor: pointer; list-style: none; }
+    .backup-menu summary::-webkit-details-marker { display: none; }
+    .backup-menu-items { position: absolute; right: 0; top: calc(100% + 6px); z-index: 70; min-width: 142px; padding: 5px; display: grid; gap: 4px; background: var(--panel); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: var(--shadow); }
+    .backup-menu-items .btn { width: 100%; text-align: left; }
 
     .notice { margin-bottom: 12px; padding: 10px 14px; background: #eef4ff; border: 1px solid #cfe0ff; color: #23488e; border-radius: 10px; font-size: 11px; display: flex; justify-content: space-between; gap: 12px; transition: opacity .18s ease, transform .18s ease, box-shadow .18s ease; }
     .file-status { display:inline-flex; align-items:center; gap:5px; margin-left:8px; padding:3px 7px; border-radius:6px; background:rgba(255,255,255,.65); border:1px solid rgba(35,72,142,.16); white-space:nowrap; }
@@ -91,6 +96,7 @@
       box-shadow: 0 10px 28px rgba(15,23,42,.13);
     }
     .app.header-collapsed #statusFloatBtn { display: inline-flex; }
+    .app.header-collapsed #unscheduledBtn, .app.header-collapsed #hideFinishedBtn, .app.header-collapsed .backup-menu { display: none; }
     .app.header-collapsed .notice {
       position: fixed; bottom: 64px; right: 18px; z-index: 55; width: min(480px, calc(100vw - 36px));
       flex-wrap: wrap; overflow-wrap: anywhere;
@@ -345,8 +351,13 @@
         <button class="btn ghost" id="themeToggleBtn" title="Switch between light and dark mode">🌙 Dark Mode</button>
         <button class="btn ghost" id="fileSyncBtn" title="Choose a project data file once, then auto-save to it">📁 Connect File</button>
         <button class="btn ghost" id="cloudBtn" title="Sign in and sync this project between devices">☁ Cloud sync</button>
-        <button class="btn ghost" id="saveProjectBtn" title="Download a portable project backup">⇩ Backup</button>
-        <button class="btn ghost" id="loadProjectBtn" title="Import a portable project backup">⇧ Import</button>
+        <details class="backup-menu" id="backupMenu">
+          <summary class="btn ghost" aria-label="Backup and Import options">▾ Backup / Import</summary>
+          <div class="backup-menu-items">
+            <button class="btn ghost" id="saveProjectBtn" title="Download a portable project backup">⇩ Backup</button>
+            <button class="btn ghost" id="loadProjectBtn" title="Import a portable project backup">⇧ Import</button>
+          </div>
+        </details>
         <button class="btn dark" id="addGroupBtn">▣ Add Group</button>
         <button class="btn blue" id="addTaskBtn">＋ Add Task</button>
         <input id="projectFileInput" type="file" accept=".json,.project.json,application/json" hidden>
@@ -587,6 +598,7 @@
       const btn = $('#headerToggleBtn');
       if (!app || !btn) return;
       app.classList.toggle('header-collapsed', !!collapsed);
+      if (collapsed) $('#backupMenu').open = false;
       btn.textContent = collapsed ? '▾ Show Header' : '▴ Collapse Header';
       btn.title = collapsed ? 'Show the project header again' : 'Collapse the project header and keep only the controls visible';
       if (collapsed) showFloatingNotice(4200); else hideFloatingNotice();
@@ -1276,8 +1288,8 @@
     $('#projectNotice').addEventListener('mouseenter', () => { if ($('.app')?.classList.contains('header-collapsed')) { clearTimeout(floatingNoticeTimer); $('#projectNotice').classList.add('float-show'); } });
     $('#projectNotice').addEventListener('mouseleave', () => { if ($('.app')?.classList.contains('header-collapsed')) showFloatingNotice(1800); });
     $('#fileSyncBtn').addEventListener('click', connectProjectFile);
-    $('#saveProjectBtn').addEventListener('click', exportProject);
-    $('#loadProjectBtn').addEventListener('click', () => $('#projectFileInput').click());
+    $('#saveProjectBtn').addEventListener('click', () => { $('#backupMenu').open=false; exportProject(); });
+    $('#loadProjectBtn').addEventListener('click', () => { $('#backupMenu').open=false; $('#projectFileInput').click(); });
     $('#projectFileInput').addEventListener('change', e => importProject(e.target.files?.[0]));
     $('#addGroupBtn').addEventListener('click',()=>openGroupDialog());
     $('#addTaskBtn').addEventListener('click',()=>openTaskDialog());
