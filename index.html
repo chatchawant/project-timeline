@@ -417,7 +417,9 @@
       <label>Publishable API key<br><input class="control" id="cloudKey" type="text" autocomplete="off" placeholder="sb_publishable_…" style="width:100%"></label>
       <button class="btn ghost" id="cloudConfigureBtn" type="button">Save connection settings</button>
       <label>Email for sign-in link<br><input class="control" id="cloudEmail" type="email" autocomplete="email" placeholder="you@example.com" style="width:100%"></label>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn blue" id="cloudSignInBtn" type="button">Email me a sign-in link</button><button class="btn ghost" id="cloudSignOutBtn" type="button">Sign out</button></div>
+      <label>Password<br><input class="control" id="cloudPassword" type="password" autocomplete="current-password" minlength="6" placeholder="Your password" style="width:100%"></label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn blue" id="cloudPasswordSignInBtn" type="button">Sign in with password</button><button class="btn ghost" id="cloudSetPasswordBtn" type="button">Set password on this signed-in device</button></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" id="cloudSignInBtn" type="button">Email me a sign-in link</button><button class="btn ghost" id="cloudSignOutBtn" type="button">Sign out</button></div>
       <div id="cloudFirstSync" hidden style="border:1px solid #64748b66;border-radius:9px;padding:12px">
         <b>Choose the copy to keep</b><p id="cloudChoiceMessage">A cloud project is available.</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn blue" id="cloudUseOnlineBtn" type="button">Use online project</button><button class="btn ghost" id="cloudUploadLocalBtn" type="button">Upload this device’s project</button></div>
@@ -1418,6 +1420,31 @@
         cloudMessage('Check your email and open the sign-in link. If on another device, open the link on the device you want to sign in.');
       } catch (err) { cloudMessage(err.message); }
     }
+    async function cloudPasswordSignIn() {
+      if (!cloudConfig) return cloudMessage('Save your connection settings first.');
+      const email = $('#cloudEmail').value.trim();
+      const password = $('#cloudPassword').value;
+      if (!email || !password) return cloudMessage('Enter your email and password.');
+      try {
+        const result = await cloudRequest('/auth/v1/token?grant_type=password', {method:'POST', headers:cloudHeaders(false), body:JSON.stringify({email,password})});
+        const user = await cloudRequest('/auth/v1/user', {headers:{...cloudHeaders(false),Authorization:'Bearer '+result.access_token}});
+        cloudSession = {...result,user,expires_at:Date.now()+result.expires_in*1000};
+        localStorage.setItem(CLOUD_SESSION_KEY,JSON.stringify(cloudSession));
+        $('#cloudPassword').value = '';
+        cloudMessage('Signed in. Checking your online project…');
+        await cloudReconcile();
+      } catch (err) { cloudMessage('Password sign-in failed: ' + err.message); }
+    }
+    async function cloudSetPassword() {
+      if (!cloudConfig || !cloudSession?.user || !(await cloudRefreshSession())) return cloudMessage('Sign in on the device that already has access, then set a password here.');
+      const password = $('#cloudPassword').value;
+      if (password.length < 8) return cloudMessage('Choose a password of at least 8 characters.');
+      try {
+        await cloudRequest('/auth/v1/user', {method:'PUT',headers:cloudHeaders(),body:JSON.stringify({password})});
+        $('#cloudPassword').value = '';
+        cloudMessage('Password saved. On your other device, enter the same email and password and choose Sign in with password.');
+      } catch (err) { cloudMessage('Could not set password: ' + err.message); }
+    }
     async function cloudStart() {
       const hash = new URLSearchParams(location.hash.slice(1));
       if (hash.has('access_token') && hash.has('refresh_token')) {
@@ -1453,6 +1480,8 @@
       cloudMessage('Connection saved on this device. Sign in with your email.');
     });
     $('#cloudSignInBtn').addEventListener('click',cloudSignIn);
+    $('#cloudPasswordSignInBtn').addEventListener('click',cloudPasswordSignIn);
+    $('#cloudSetPasswordBtn').addEventListener('click',cloudSetPassword);
     $('#cloudSignOutBtn').addEventListener('click', () => { cloudReady=false; cloudSession=null; localStorage.removeItem(CLOUD_SESSION_KEY); $('#cloudFirstSync').hidden=true; cloudMessage('Signed out. This device still has its local copy.'); cloudStatus('Signed out — local copy only'); });
     $('#cloudUseOnlineBtn').addEventListener('click', async () => {
       try { const row=await cloudFetchRow(); if (!row) throw new Error('Cloud project is missing'); state=parseProjectPayload(row.data); cloudRevision=row.revision; saveLocalOnly(); render(); localStorage.setItem(cloudSnapshotKey(),cloudFingerprint()); cloudDirty=false; cloudReady=true; $('#cloudFirstSync').hidden=true; cloudStatus('Cloud synced'); $('#cloudDialog').close(); }
