@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Project Timeline" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Project Timeline Manager</title>
   <style>
     :root {
@@ -323,7 +326,7 @@
 
     .mobile-views, .mobile-controls-toggle, .mobile-info-toggle, .mobile-group-label, .expanded-task-label { display:none; }
     @media (max-width: 900px) {
-      .app { padding: 8px; }
+      .app { min-height:100dvh; padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); }
       .topbar { padding:10px 12px; gap:8px; flex-direction:row; align-items:center; }
       .topbar > div:first-child { min-width:0; flex:1; }
       .topbar .eyebrow { font-size:9px; }
@@ -1678,7 +1681,10 @@
     function updateMobileChartHeight() {
       if (!window.matchMedia('(max-width: 900px)').matches) return;
       const scroller=$('#scroller');
-      const height=Math.max(160,window.innerHeight-Math.max(0,scroller.getBoundingClientRect().top)-8);
+      const viewport=window.visualViewport;
+      const visibleBottom=viewport ? viewport.offsetTop+viewport.height : window.innerHeight;
+      const bottomPadding=parseFloat(getComputedStyle($('.app')).paddingBottom)||8;
+      const height=Math.max(120,visibleBottom-Math.max(0,scroller.getBoundingClientRect().top)-bottomPadding-2);
       $('.app').style.setProperty('--mobile-chart-height',height+'px');
     }
     $('#mobileListView').addEventListener('click',()=>setMobileView('list'));
@@ -1713,6 +1719,8 @@
       requestAnimationFrame(updateMobileChartHeight);
     });
     window.addEventListener('resize',()=>requestAnimationFrame(updateMobileChartHeight));
+    window.visualViewport?.addEventListener('resize',()=>requestAnimationFrame(updateMobileChartHeight));
+    window.visualViewport?.addEventListener('scroll',()=>requestAnimationFrame(updateMobileChartHeight));
     $('#mobileStatusBtn').addEventListener('click',()=>showFloatingNotice(5000));
     $('#mobileTodayBtn').addEventListener('click',()=>{
       const d=new Date(); const today=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
