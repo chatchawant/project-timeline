@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Project Timeline" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <title>Project Timeline Manager</title>
   <style>
     :root {
@@ -326,7 +326,7 @@
 
     .mobile-views, .mobile-controls-toggle, .mobile-info-toggle, .mobile-group-label, .expanded-task-label { display:none; }
     @media (max-width: 900px) {
-      .app { min-height:100dvh; padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); }
+      .app { min-height:100dvh; padding: calc(env(safe-area-inset-top, 0px) + 12px) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); }
       .topbar { padding:10px 12px; gap:8px; flex-direction:row; align-items:center; }
       .topbar > div:first-child { min-width:0; flex:1; }
       .topbar .eyebrow { font-size:9px; }
@@ -350,7 +350,7 @@
       .mobile-views > * { flex-shrink:0; }
       .mobile-views .btn { height:36px; } .mobile-help { color:var(--muted);font-size:11px; }
       .scroller, .app.header-collapsed .scroller { max-height:65vh; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
-      .app.mobile-timeline .scroller, .app.header-collapsed.mobile-timeline .scroller { height:var(--mobile-chart-height,65vh); max-height:none; }
+      .app.mobile-timeline .scroller, .app.header-collapsed.mobile-timeline .scroller { height:auto; max-height:var(--mobile-chart-height,65vh); }
       .app.mobile-list { --left-col:calc(100vw - 34px); }
       .app.mobile-timeline { --left-col:42px; }
       .app.mobile-list .task-row .sticky-left, .app.mobile-list .task-row .timeline { height:76px; }
