@@ -320,16 +320,94 @@
     .task-action-menu button { display: block; width: 100%; padding: 8px; text-align: left; background: transparent; border: 0; border-radius: 4px; color: inherit; font-size: 12px; }
     .task-action-menu button:hover, .task-action-menu button:focus-visible { background: #64748b26; }
     html[data-theme="dark"] .task-action-menu { background: #252d38; }
+
+    .mobile-views, .mobile-controls-toggle, .mobile-info-toggle, .mobile-group-label, .expanded-task-label { display:none; }
+    @media (max-width: 900px) {
+      .app { padding: 8px; }
+      .topbar { padding:10px 12px; gap:8px; flex-direction:row; align-items:center; }
+      .topbar > div:first-child { min-width:0; flex:1; }
+      .topbar .eyebrow { font-size:9px; }
+      .topbar h1 { font-size:16px; margin:3px 0 5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .topbar .meta { display:none; gap:4px; flex-wrap:wrap; }
+      .topbar.mobile-info-open .meta { display:flex; margin-top:6px; }
+      .mobile-info-toggle { display:inline-flex; align-items:center; height:24px; padding:0 7px; font-size:10px; }
+      .topbar .pill { font-size:10px; padding:3px 5px; white-space:nowrap; }
+      .stats { width:auto; flex:0 0 auto; gap:4px; }
+      .stat { min-width:0; flex:none; padding:5px 7px; border-radius:8px; }
+      .stat span { font-size:8px; letter-spacing:0; }
+      .stat b { font-size:15px; margin-top:2px; }
+      .mobile-controls-toggle { display:inline-flex; align-items:center; margin:0; }
+      .app.mobile-controls-hidden .toolbar { display:none; }
+      .toolbar, .app.header-collapsed .toolbar { position:relative; top:auto; overflow:visible; display:block; padding:8px; }
+      .app.mobile-controls-hidden .toolbar, .app.header-collapsed.mobile-controls-hidden .toolbar { display:none; }
+      .toolbar-left, .toolbar-right, .app.header-collapsed .toolbar-left, .app.header-collapsed .toolbar-right { display:flex; flex-wrap:nowrap; overflow-x:auto; max-width:100%; padding-bottom:5px; gap:6px; }
+      .toolbar-right { margin-top:5px; } .toolbar-left > *, .toolbar-right > * { flex-shrink:0; }
+      .app.header-collapsed #search, #search { width:150px !important; } .toolbar .btn { white-space:nowrap; }
+      .mobile-views { display:flex; align-items:center; gap:6px; padding:0 2px 8px; overflow-x:auto; }
+      .mobile-views > * { flex-shrink:0; }
+      .mobile-views .btn { height:36px; } .mobile-help { color:var(--muted);font-size:11px; }
+      .scroller, .app.header-collapsed .scroller { max-height:65vh; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
+      .app.mobile-timeline .scroller, .app.header-collapsed.mobile-timeline .scroller { height:var(--mobile-chart-height,65vh); max-height:none; }
+      .app.mobile-list { --left-col:calc(100vw - 34px); }
+      .app.mobile-timeline { --left-col:42px; }
+      .app.mobile-list .task-row .sticky-left, .app.mobile-list .task-row .timeline { height:76px; }
+      .app.mobile-list .task-row .task-left { display:block; }
+      .app.mobile-list .task-controls { margin-top:4px; }
+      .app.mobile-list .task-row .bar { top:23px; }
+      .app.mobile-list .task-titleline { width:100%; }
+      .app.mobile-timeline .task-row .sticky-left, .app.mobile-timeline .task-row .timeline { height:34px; }
+      .app.mobile-timeline .task-row .task-left { display:block; }
+      .app.mobile-timeline .task-row .task-left { display:none; }
+      .app.mobile-timeline .task-controls { margin-top:3px; }
+      .app.mobile-timeline .task-row .sticky-left { padding:4px 5px; gap:3px; }
+      .app.mobile-timeline .drag-dot { display:none; }
+      .app.mobile-timeline .index-badge { display:none; }
+      .app.mobile-timeline .task-title-input { font-size:11px; padding:0 2px; }
+      .app.mobile-timeline .task-date, .app.mobile-timeline .task-controls [title="Edit duration"], .app.mobile-timeline .task-controls .finish-btn { display:none; }
+      .app.mobile-timeline .task-row .bar { top:4px; height:26px; touch-action:none; -webkit-touch-callout:none; }
+      .app.mobile-timeline .task-row .bar.mobile-dragging { opacity:.8; outline:2px solid #fff; z-index:6; }
+      .app.mobile-timeline .task-row .bar.label-expanded { overflow:visible; z-index:5; }
+      .app.mobile-timeline .task-row .bar.label-expanded .bar-title { visibility:hidden; }
+      .app.mobile-timeline .task-row .bar.label-expanded .expanded-task-label { display:flex; }
+      .app.mobile-timeline .expanded-task-label { position:absolute; left:0; top:0; width:max-content; height:100%; align-items:center; gap:6px; padding:0 3px 0 8px; white-space:nowrap; color:white; background:color-mix(in srgb, var(--bar-color) 72%, transparent); border-radius:7px; box-shadow:0 3px 10px rgba(0,0,0,.2); z-index:2; }
+      .app.mobile-timeline .expanded-task-status { touch-action:manipulation; height:24px; border:1px solid #ffffff80; border-radius:5px; background:#142438d9; color:#fff; padding:0 6px; font-size:10px; font-weight:700; white-space:nowrap; }
+      .app.mobile-timeline .expanded-task-controls { position:absolute; right:calc(100% + 4px); top:0; display:flex; align-items:center; gap:3px; height:100%; padding:0 3px; background:color-mix(in srgb, var(--bar-color) 72%, transparent); border-radius:7px; }
+      .app.mobile-timeline .expanded-duration-value { min-width:1.5em; text-align:center; font-size:11px; font-weight:700; }
+      .app.mobile-timeline .expanded-duration { touch-action:manipulation; min-width:24px; height:24px; border:1px solid #ffffff80; border-radius:5px; background:#142438e8; color:#fff; font-size:14px; font-weight:700; padding:0 5px; }
+      .app.mobile-timeline .group-row .sticky-left { overflow:visible; z-index:8; justify-content:center; }
+      .app.mobile-timeline .group-main { display:none; }
+      .app.mobile-timeline .header-left { font-size:0; padding:0; }
+      .app.mobile-timeline .mobile-group-label { display:flex; position:absolute; top:32px; left:0; width:100%; padding:8px 0; align-items:center; justify-content:flex-end; writing-mode:vertical-rl; transform:rotate(180deg); overflow:hidden; color:var(--text); background:var(--panel); border-left:3px solid var(--group-header); font-size:10px; line-height:1; letter-spacing:.03em; text-overflow:ellipsis; pointer-events:none; }
+      .app.mobile-timeline .group-row .sticky-left, .app.mobile-timeline .group-row .timeline { height:32px; }
+      .app.mobile-timeline .group-actions { max-width:32px; }
+      .app.mobile-timeline .group-actions .icon-btn:not([data-action="collapse-group"]) { display:none; }
+      .app.mobile-timeline .group-count { display:none; }
+      .app.mobile-timeline .group-row .sticky-left { padding:0 5px;gap:2px; }
+      .app.mobile-timeline .group-actions .icon-btn { flex:0 0 30px; }
+      .app.mobile-list .timeline { visibility:hidden; }
+      .task-controls .mini, .task-controls .task-date { height:32px; font-size:11px; }
+      .task-controls .task-date { width:125px; }
+      .icon-btn { min-width:32px; min-height:32px; }
+      dialog { max-height:calc(100dvh - 20px); overflow-y:auto; }
+      .modal-body { max-height:calc(100dvh - 145px); overflow-y:auto; }
+      .field input,.field select,.field textarea { font-size:16px; }
+      .app .notice, .app.header-collapsed .notice { position:fixed; bottom:64px; right:12px; z-index:55; width:min(420px,calc(100vw - 24px)); margin:0; flex-wrap:wrap; overflow-wrap:anywhere; min-width:0; opacity:0; pointer-events:none; transform:translateY(8px); box-shadow:0 12px 34px rgba(15,23,42,.22); }
+      .app .notice.float-show, .app.header-collapsed .notice.float-show { opacity:1; pointer-events:auto; transform:translateY(0); }
+      .notice > span { min-width:0; max-width:100%; }
+      .file-status { display:inline; white-space:normal; margin-left:0; }
+      .app.header-collapsed .notice { width:min(420px,calc(100vw - 24px)); right:12px; }
+    }
   </style>
 </head>
 <body>
   <div class="sync-alarm" id="syncAlarm" aria-hidden="true"><div class="sync-alarm-label" id="syncAlarmLabel">FILE NOT SYNCED</div></div>
-  <div class="app">
+  <div class="app mobile-list mobile-controls-hidden">
     <section class="topbar card">
       <div>
         <div class="eyebrow">✣ Interactive timeline canvas</div>
         <h1 id="projectName">Product & Spatial Design</h1>
-        <div class="meta">
+        <button type="button" class="btn ghost mobile-info-toggle" id="mobileInfoToggle" aria-expanded="false" aria-controls="projectMeta">ⓘ Info</button>
+        <div class="meta" id="projectMeta">
           <span class="pill">👤 Manager: <b id="managerName">Project Manager</b></span>
           <span class="pill">🏢 Company: <b id="companyName">Your Company</b></span>
           <span class="pill">◷ Project Date: <b id="projectDateText"></b></span>
@@ -341,7 +419,7 @@
       </div>
     </section>
 
-    <section class="toolbar card">
+    <section class="toolbar card" id="projectToolbar">
       <div class="toolbar-left">
         <label class="pill date-pill">📅 <b>Start Date:</b>
           <input id="startDate" class="control" type="date">
@@ -378,6 +456,7 @@
       </div>
     </section>
 
+    <div class="mobile-views"><button type="button" id="mobileHeaderToggle" class="btn ghost" aria-label="Hide header" aria-pressed="false" title="Hide header">⛶</button><button type="button" id="mobileControlsToggle" class="btn ghost mobile-controls-toggle" aria-expanded="false" aria-controls="projectToolbar">☰ Controls</button><button type="button" class="btn blue" id="mobileListView" aria-pressed="true">Tasks</button><button type="button" class="btn ghost" id="mobileTimelineView" aria-pressed="false">Timeline</button><button type="button" class="btn ghost" id="mobileTodayBtn" hidden>Today</button><button type="button" class="btn ghost" id="mobileExpandNamesBtn" aria-pressed="false" hidden>Expand names</button><button type="button" class="btn ghost" id="mobileStatusBtn">ⓘ Status</button><span class="mobile-help" id="mobileHelp">Tap Timeline to see dates</span></div>
     <div class="notice" id="projectNotice">
       <span>ⓘ Edits auto-save locally. <b>Connect File</b> once to also save automatically to one project file. <span class="file-status" id="fileStatus">💾 Local only</span></span>
       <b id="verifiedCount">0 Tasks verified</b>
@@ -488,6 +567,8 @@
     let noteTaskId = null;
     let floatingNoticeTimer = null;
     let onlyUnscheduled = false;
+    let mobileExpandAllNames = false;
+    let expandedMobileTaskIds = new Set();
     let linkedFileHandle = null;
     let linkedFileWriteTimer = null;
     const FILE_HANDLE_DB = 'projectTimelineManager.files.v1';
@@ -601,7 +682,7 @@
     function showFloatingNotice(ms = 4200) {
       const app = $('.app');
       const notice = $('#projectNotice');
-      if (!app?.classList.contains('header-collapsed') || !notice) return;
+      if ((!app?.classList.contains('header-collapsed') && !window.matchMedia('(max-width: 900px)').matches) || !notice) return;
       clearTimeout(floatingNoticeTimer);
       notice.classList.add('float-show');
       if (ms > 0) floatingNoticeTimer = setTimeout(() => notice.classList.remove('float-show'), ms);
@@ -615,9 +696,13 @@
       const btn = $('#headerToggleBtn');
       if (!app || !btn) return;
       app.classList.toggle('header-collapsed', !!collapsed);
+      const header = app.querySelector('.topbar');
+      if (header) { header.hidden = !!collapsed; header.style.display = collapsed ? 'none' : ''; }
       if (collapsed) $('#backupMenu').open = false;
       btn.textContent = collapsed ? '▾ Show Header' : '▴ Collapse Header';
       btn.title = collapsed ? 'Show the project header again' : 'Collapse the project header and keep only the controls visible';
+      const mobileBtn=$('#mobileHeaderToggle');
+      if (mobileBtn) { mobileBtn.setAttribute('aria-pressed',String(!!collapsed)); mobileBtn.setAttribute('aria-label',collapsed?'Show header':'Hide header'); mobileBtn.title=collapsed?'Show header':'Hide header'; }
       if (collapsed) showFloatingNotice(4200); else hideFloatingNotice();
       if (announce) toast(collapsed ? 'Header collapsed — status will float temporarily' : 'Header restored');
     }
@@ -809,7 +894,6 @@
         button.title = 'This browser cannot auto-save to a chosen file. Download a project backup (⌘S on Mac / Ctrl+S on Windows).';
         button.disabled = false;
         setSyncAlarm(false);
-        showFloatingNotice();
         return;
       }
       button.disabled = false;
@@ -1069,14 +1153,14 @@
 
       let groupsRendered = 0;
       state.groups.forEach((g, gi) => {
-        const tasks = visibleTasksForGroup(g.id);
+        let tasks = visibleTasksForGroup(g.id);
         const gf = $('#groupFilter').value;
         const q = $('#search').value.trim();
         if ((gf!=='all' && gf!==g.id) || ((q || onlyUnscheduled) && tasks.length===0)) return;
         groupsRendered++;
         const groupTones = getGroupToneSet(g.id);
         html += `<div class="row group-row" style="--group-header:${groupTones.headerBg};--group-timeline:${groupTones.timelineBg};">
-          <div class="sticky-left" style="background:${groupTones.headerBg}"><div class="group-main"><span aria-hidden="true">⠿</span><span class="group-name" title="${esc(g.name)}">${esc(g.name)}</span><span class="group-count">(${tasks.length})</span></div>
+          <div class="sticky-left" style="background:${groupTones.headerBg}">${!g.collapsed && tasks.length ? `<span class="mobile-group-label" style="height:${tasks.length * 34}px" title="${esc(g.name)}">${esc(g.name)}</span>` : ''}<div class="group-main"><span aria-hidden="true">⠿</span><span class="group-name" title="${esc(g.name)}">${esc(g.name)}</span><span class="group-count">(${tasks.length})</span></div>
             <div class="group-actions">
               <button class="icon-btn" data-action="quick-add-task" data-id="${g.id}" title="Quick add a 3-day task starting today" aria-label="Quick add task to ${esc(g.name)}">＋</button>
               <button class="icon-btn" data-action="collapse-group" data-id="${g.id}" title="Collapse">${g.collapsed?'▾':'▴'}</button>
@@ -1115,7 +1199,7 @@
                 </div>
               </div>
               <div class="timeline">${todayColumn}
-                ${offscreen ? '' : `<div class="bar ${!t.start?'unscheduled':''} ${isFinished ? 'is-finished' : ''} ${compactBar ? 'compact' : ''} ${tinyBar ? 'tiny' : ''}" data-bar-id="${t.id}" title="${esc(t.title)} • ${statusMeta.label} • ${t.duration}d" style="left:${t.start?left:8}px;width:${t.start?width:130}px;background:${tones.barColor}"><span class="bar-title">${esc(t.title)}</span><span class="duration">${t.duration}d</span>${t.start?'<span class="resize"></span>':''}</div>`}
+                ${offscreen ? '' : `<div class="bar ${!t.start?'unscheduled':''} ${isFinished ? 'is-finished' : ''} ${compactBar ? 'compact' : ''} ${tinyBar ? 'tiny' : ''} ${mobileExpandAllNames || expandedMobileTaskIds.has(t.id) ? 'label-expanded' : ''}" data-bar-id="${t.id}" data-full-title="${esc(t.title)}" title="${esc(t.title)} • ${statusMeta.label} • ${t.duration}d" style="left:${t.start?left:8}px;width:${t.start?width:130}px;background:${tones.barColor};--bar-color:${tones.barColor}"><span class="bar-title">${esc(t.title)}</span><span class="duration">${t.duration}d</span><span class="expanded-task-label"><span>${esc(t.title)}</span><span class="expanded-task-controls"><button type="button" class="expanded-task-status" data-action="toggle-status" data-id="${t.id}" aria-label="Status ${esc(statusMeta.label)}. Tap to change status">${esc(statusMeta.button)}</button><button type="button" class="expanded-duration" data-action="change-duration" data-days="-1" data-id="${t.id}" aria-label="Reduce duration by one workday">−</button><span class="expanded-duration-value" aria-label="Duration: ${t.duration} workdays">${t.duration}</span><button type="button" class="expanded-duration" data-action="change-duration" data-days="1" data-id="${t.id}" aria-label="Increase duration by one workday">＋</button></span></span>${t.start?'<span class="resize"></span>':''}</div>`}
               </div>
             </div>`;
           });
@@ -1245,8 +1329,40 @@
     function wireBarDrag(bar) {
       const id = bar.dataset.barId;
       const resize = bar.querySelector('.resize');
+      let suppressTap=false;
+      bar.setAttribute('tabindex','0');
+      bar.setAttribute('role','button');
+      bar.setAttribute('aria-expanded',String(bar.classList.contains('label-expanded')));
+      bar.setAttribute('aria-label',bar.title + ' — tap to expand the task name');
+      function toggleLabel() {
+        if (suppressTap) { suppressTap=false; return; }
+        if (!window.matchMedia('(max-width: 900px)').matches || !$('.app').classList.contains('mobile-timeline')) return;
+        hideFloatingNotice();
+        const expand=!bar.classList.contains('label-expanded');
+        if (!mobileExpandAllNames) { expandedMobileTaskIds.clear(); document.querySelectorAll('.bar.label-expanded').forEach(other=>{other.classList.remove('label-expanded');other.setAttribute('aria-expanded','false');}); }
+        bar.classList.toggle('label-expanded',expand); bar.setAttribute('aria-expanded',String(expand));
+        if (expand) expandedMobileTaskIds.add(id); else expandedMobileTaskIds.delete(id);
+        }
+      bar.querySelectorAll('.expanded-task-controls button').forEach(button=>{
+        button.addEventListener('pointerdown',event=>event.stopPropagation());
+        button.addEventListener('click',event=>event.stopPropagation());
+      });
+      bar.addEventListener('click',toggleLabel);
+      bar.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleLabel();}});
+      bar.addEventListener('pointerdown',ev=>{
+        if (!window.matchMedia('(max-width: 900px)').matches || !$('.app').classList.contains('mobile-timeline') || ev.button!==0) return;
+        const task=state.tasks.find(x=>x.id===id); if (!task?.start) return;
+        const pointerId=ev.pointerId, x0=ev.clientX, y0=ev.clientY, original=task.start;
+        let active=false, delta=0;
+        bar.setPointerCapture(pointerId);
+        const clean=()=>{bar.removeEventListener('pointermove',move);bar.removeEventListener('pointerup',up);bar.removeEventListener('pointercancel',cancel);bar.classList.remove('mobile-dragging');bar.style.transform='';};
+        const move=e=>{if(e.pointerId!==pointerId)return; if(!active && (Math.abs(e.clientX-x0)>6||Math.abs(e.clientY-y0)>6)){active=true;suppressTap=true;bar.classList.add('mobile-dragging');} if(active){delta=Math.round((e.clientX-x0)/state.project.dayPx);bar.style.transform=`translateX(${delta*state.project.dayPx}px)`;}};
+        const up=e=>{if(e.pointerId!==pointerId)return;const moved=active&&delta!==0;clean();if(moved){task.start=addBusinessDays(original,delta);save();render();toast('Task moved');}else if(active){setTimeout(()=>{suppressTap=false;},300);}};
+        const cancel=e=>{if(e.pointerId!==pointerId)return;clean();suppressTap=false;};
+        bar.addEventListener('pointermove',move);bar.addEventListener('pointerup',up);bar.addEventListener('pointercancel',cancel);
+      });
       const startPointer = (ev, mode) => {
-        if (ev.button!==0) return;
+        if (ev.pointerType === 'touch' || (window.matchMedia('(max-width: 900px)').matches && $('.app').classList.contains('mobile-timeline')) || ev.button!==0) return;
         ev.preventDefault(); ev.stopPropagation();
         const t=state.tasks.find(x=>x.id===id); if (!t || !t.start) return;
         const x0=ev.clientX, start0=t.start, dur0=t.duration;
@@ -1376,6 +1492,7 @@
       if (status && (cloudReady || error)) status.textContent = (error ? '🔴 ' : '✅ ') + message;
       if (cloudReady || error) setSyncAlarm(error, error ? 'CLOUD SAVE FAILED — CHANGES ARE LOCAL' : '');
       cloudMessage(message);
+      if (error) showFloatingNotice(7000);
     }
     function cloudHeaders(auth=true) {
       return { apikey: cloudConfig.key, Authorization: 'Bearer ' + (auth ? cloudSession.access_token : cloudConfig.key), 'Content-Type': 'application/json' };
@@ -1547,6 +1664,62 @@
     window.addEventListener('online', () => { if (cloudSession?.user) { if (cloudReady) { cloudDirty=true; scheduleCloudSave(); } else cloudReconcile().catch(err => cloudStatus(err.message,true)); } });
     document.addEventListener('visibilitychange', () => { if (!document.hidden && cloudSession?.user && cloudReady && !cloudDirty) cloudReconcile().catch(err => cloudStatus(err.message,true)); });
 
+    function setMobileView(view) {
+      const list = view === 'list';
+      hideFloatingNotice();
+      $('.app').classList.toggle('mobile-list', list); $('.app').classList.toggle('mobile-timeline', !list);
+      $('#mobileListView').className='btn '+(list?'blue':'ghost'); $('#mobileTimelineView').className='btn '+(list?'ghost':'blue');
+      $('#mobileListView').setAttribute('aria-pressed',String(list)); $('#mobileTimelineView').setAttribute('aria-pressed',String(!list));
+      $('#mobileTodayBtn').hidden=list;
+      $('#mobileExpandNamesBtn').hidden=list;
+      $('#mobileHelp').textContent=list?'Tap Timeline to see dates':'Swipe dates sideways'; $('#scroller').scrollLeft=0;
+      renderSchedule(); requestAnimationFrame(updateMobileChartHeight);
+    }
+    function updateMobileChartHeight() {
+      if (!window.matchMedia('(max-width: 900px)').matches) return;
+      const scroller=$('#scroller');
+      const height=Math.max(160,window.innerHeight-Math.max(0,scroller.getBoundingClientRect().top)-8);
+      $('.app').style.setProperty('--mobile-chart-height',height+'px');
+    }
+    $('#mobileListView').addEventListener('click',()=>setMobileView('list'));
+    $('#mobileTimelineView').addEventListener('click',()=>setMobileView('timeline'));
+    $('#mobileHeaderToggle').addEventListener('click',()=>{
+      toggleHeaderCollapse();
+      if (state.project.headerCollapsed) {
+        $('.app').classList.add('mobile-controls-hidden');
+        $('#mobileControlsToggle').setAttribute('aria-expanded','false');
+        $('#mobileControlsToggle').textContent='☰ Controls';
+      }
+      requestAnimationFrame(updateMobileChartHeight);
+    });
+    $('#mobileExpandNamesBtn').addEventListener('click',()=>{
+      mobileExpandAllNames=!mobileExpandAllNames;
+      expandedMobileTaskIds.clear();
+      const button=$('#mobileExpandNamesBtn');
+      button.setAttribute('aria-pressed',String(mobileExpandAllNames));
+      button.textContent=mobileExpandAllNames?'Fit names':'Expand names';
+      button.className='btn '+(mobileExpandAllNames?'blue':'ghost');
+      document.querySelectorAll('.bar').forEach(bar=>{bar.classList.toggle('label-expanded',mobileExpandAllNames);bar.setAttribute('aria-expanded',String(mobileExpandAllNames));});
+    });
+    $('#mobileControlsToggle').addEventListener('click',()=>{
+      const hidden=$('.app').classList.toggle('mobile-controls-hidden');
+      $('#mobileControlsToggle').setAttribute('aria-expanded',String(!hidden));
+      $('#mobileControlsToggle').textContent=hidden?'☰ Controls':'✕ Close controls';
+      requestAnimationFrame(updateMobileChartHeight);
+    });
+    $('#mobileInfoToggle').addEventListener('click',()=>{
+      const open=$('.topbar').classList.toggle('mobile-info-open');
+      $('#mobileInfoToggle').setAttribute('aria-expanded',String(open));
+      requestAnimationFrame(updateMobileChartHeight);
+    });
+    window.addEventListener('resize',()=>requestAnimationFrame(updateMobileChartHeight));
+    $('#mobileStatusBtn').addEventListener('click',()=>showFloatingNotice(5000));
+    $('#mobileTodayBtn').addEventListener('click',()=>{
+      const d=new Date(); const today=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const pos=businessDiffDays(today, state.project.startDate);
+      if (pos<0 || pos>=state.project.daysVisible) { toast('Today is outside the timeline. Adjust Start Date to show it.'); return; }
+      $('#scroller').scrollTo({left:Math.max(0,pos*state.project.dayPx-2*state.project.dayPx),behavior:'smooth'});
+    });
     async function initializeApp() {
       applyTheme(state.project.theme);
       applyHeaderCollapse(state.project.headerCollapsed, false);
@@ -1555,6 +1728,7 @@
       applyTheme(state.project.theme);
       applyHeaderCollapse(state.project.headerCollapsed, false);
       render();
+      if (window.matchMedia('(max-width: 900px)').matches) setMobileView('timeline');
     }
     initializeApp();
   </script>
