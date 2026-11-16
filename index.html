@@ -177,7 +177,7 @@
     .bar { position: absolute; top: 41px; height: 36px; border-radius: 7px; color: white; display: flex; align-items: center; gap: 6px; padding: 0 8px; font-size: 10px; font-weight: 700; white-space: nowrap; overflow: hidden; user-select: none; box-shadow: 0 2px 7px rgba(15,23,42,.12); cursor: grab; z-index: 1; }
     .bar:active { cursor: grabbing; }
     .bar .bar-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-    .bar .duration { position: static; flex: 0 0 auto; height: 20px; min-width: 26px; padding: 0 5px; border-radius: 5px; background: rgba(15,23,42,.22); display: inline-flex; align-items: center; justify-content: center; font-size: 9px; }
+    .bar .duration { position: static; flex: 0 0 auto; height: 20px; min-width: 26px; padding: 0 5px; border-radius: 5px; background: transparent; border:1px solid currentColor; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; }
     .bar.compact { justify-content: center; }
     .bar.compact .duration { display: none; }
     .bar.tiny { padding: 0 6px; }
@@ -185,7 +185,7 @@
     .bar.is-finished { opacity: .38; filter: saturate(.65); }
     .task-row.is-finished .task-left { opacity: .78; }
     .resize { position: absolute; right: 0; top: 0; bottom: 0; width: 10px; cursor: ew-resize; }
-    .unscheduled { top: 41px; left: 8px !important; width: 130px !important; background: #94a3b8 !important; }
+    .unscheduled { top: 41px; left: 8px !important; width: 130px !important; background: var(--bar-color) !important; }
 
     .empty { padding: 40px; text-align: center; color: #64748b; }
 
@@ -211,13 +211,13 @@
 
     /* Dark mode */
     html[data-theme="dark"] {
-      --bg: #090d14;
-      --panel: #111722;
-      --line: #232d3b;
-      --line-strong: #344154;
-      --text: #eef4ff;
-      --muted: #9ba9bb;
-      --blue-soft: #17254a;
+      --bg: #0d0d0d;
+      --panel: #171717;
+      --line: #2c2c2c;
+      --line-strong: #404040;
+      --text: #f4f4f4;
+      --muted: #a7a7a7;
+      --blue-soft: #252525;
       --shadow: 0 8px 28px rgba(0, 0, 0, .28);
       color-scheme: dark;
     }
@@ -230,70 +230,70 @@
     html[data-theme="dark"] .zoom,
     html[data-theme="dark"] .field input,
     html[data-theme="dark"] .field select,
-    html[data-theme="dark"] .field textarea { background: #151d29; color: #e7eef8; border-color: #344154; }
-    html[data-theme="dark"] .date-pill { background: #151d29 !important; border-color: #344154 !important; }
+    html[data-theme="dark"] .field textarea { background: #1c1c1c; color: #ededed; border-color: #404040; }
+    html[data-theme="dark"] .date-pill { background: #1c1c1c !important; border-color: #404040 !important; }
     html[data-theme="dark"] .date-pill .control { background: transparent !important; }
-    html[data-theme="dark"] .pill { background: #17202c; }
-    html[data-theme="dark"] .stat { background: #151d29; border-color: #2d394a; }
-    html[data-theme="dark"] .stat.blue { background: #17254a; border-color: #3155a5; }
+    html[data-theme="dark"] .pill { background: #1f1f1f; }
+    html[data-theme="dark"] .stat { background: #1c1c1c; border-color: #383838; }
+    html[data-theme="dark"] .stat.blue { background: #252525; border-color: #535353; }
     html[data-theme="dark"] .stat span,
     html[data-theme="dark"] .group-count,
     html[data-theme="dark"] .field label,
     html[data-theme="dark"] .day-cell .dow,
-    html[data-theme="dark"] .stepper-label { color: #9ba9bb; }
-    html[data-theme="dark"] .header-left { color: #b8c4d4; border-color: #263244; background: #1a2230; }
+    html[data-theme="dark"] .stepper-label { color: #a7a7a7; }
+    html[data-theme="dark"] .header-left { color: #c3c3c3; border-color: #313131; background: #212121; }
     html[data-theme="dark"] .month-row .sticky-left,
-    html[data-theme="dark"] .month-row .timeline { background: #1a2230; }
-    html[data-theme="dark"] .month-band { color: #dce5f2; border-color: #2b3748; }
+    html[data-theme="dark"] .month-row .timeline { background: #212121; }
+    html[data-theme="dark"] .month-band { color: #e4e4e4; border-color: #363636; }
     html[data-theme="dark"] .weekday-row .timeline {
-      background-color: #101722;
-      background-image: linear-gradient(to right, rgba(126,146,173,.28) 2px, transparent 2px), linear-gradient(to right, #263244 1px, transparent 1px);
+      background-color: #161616;
+      background-image: linear-gradient(to right, rgba(146,146,146,.28) 2px, transparent 2px), linear-gradient(to right, #313131 1px, transparent 1px);
     }
-    html[data-theme="dark"] .day-cell { border-color: #263244; }
-    html[data-theme="dark"] .day-cell .dom { color: #f3f7fd; }
+    html[data-theme="dark"] .day-cell { border-color: #313131; }
+    html[data-theme="dark"] .day-cell .dom { color: #f7f7f7; }
     html[data-theme="dark"] .day-cell.today { background: #173323; box-shadow: inset 0 0 0 1px #34d399; }
     html[data-theme="dark"] .today-column { background: rgba(52, 211, 153, .12); border-left-color: rgba(52, 211, 153, .42); border-right-color: rgba(52, 211, 153, .32); }
-    html[data-theme="dark"] .sticky-left { border-color: #263244; }
+    html[data-theme="dark"] .sticky-left { border-color: #313131; }
     html[data-theme="dark"] .group-row .sticky-left {
-      background: color-mix(in srgb, var(--group-header, #eef4ff) 22%, #111722 78%) !important;
+      background: color-mix(in srgb, var(--group-header, #f4f4f4) 22%, #171717 78%) !important;
     }
     html[data-theme="dark"] .group-row .timeline {
-      background-color: color-mix(in srgb, var(--group-timeline, #eef4ff) 13%, #0f1620 87%) !important;
-      background-image: linear-gradient(to right, rgba(126,146,173,.24) 2px, transparent 2px), linear-gradient(to right, #253142 1px, transparent 1px);
+      background-color: color-mix(in srgb, var(--group-timeline, #f4f4f4) 13%, #151515 87%) !important;
+      background-image: linear-gradient(to right, rgba(146,146,146,.24) 2px, transparent 2px), linear-gradient(to right, #303030 1px, transparent 1px);
     }
     html[data-theme="dark"] .task-row .sticky-left {
-      background: color-mix(in srgb, var(--task-soft, #eef4ff) 14%, #111722 86%);
+      background: color-mix(in srgb, var(--task-soft, #f4f4f4) 14%, #171717 86%);
     }
     html[data-theme="dark"] .task-row .timeline {
-      background-color: color-mix(in srgb, var(--task-lane, #eef4ff) 8%, #0e141e 92%);
-      background-image: linear-gradient(to right, rgba(126,146,173,.26) 2px, transparent 2px), linear-gradient(to right, #243042 1px, transparent 1px);
-      border-color: #232d3b;
+      background-color: color-mix(in srgb, var(--task-lane, #f4f4f4) 8%, #131313 92%);
+      background-image: linear-gradient(to right, rgba(146,146,146,.26) 2px, transparent 2px), linear-gradient(to right, #2f2f2f 1px, transparent 1px);
+      border-color: #2c2c2c;
     }
-    html[data-theme="dark"] .task-title-input { color: #f3f7fd; }
+    html[data-theme="dark"] .task-title-input { color: #f7f7f7; }
     html[data-theme="dark"] .task-title-input:hover,
-    html[data-theme="dark"] .task-title-input:focus { background: #17202c; border-color: #46566d; }
-    html[data-theme="dark"] .index-badge { background: #1b2431; border-color: #3a485b; color: #dce5f2; }
+    html[data-theme="dark"] .task-title-input:focus { background: #1f1f1f; border-color: #545454; }
+    html[data-theme="dark"] .index-badge { background: #232323; border-color: #464646; color: #e4e4e4; }
     html[data-theme="dark"] .mini,
     html[data-theme="dark"] .stepper button,
     html[data-theme="dark"] .resource-btn,
     html[data-theme="dark"] .task-row .finish-btn {
-      background: color-mix(in srgb, var(--task-chip-bg, #eef4ff) 11%, #17202c 89%);
-      border-color: color-mix(in srgb, var(--task-chip-border, #64748b) 26%, #3a4658 74%);
-      color: #dce5f2;
+      background: color-mix(in srgb, var(--task-chip-bg, #f4f4f4) 11%, #1f1f1f 89%);
+      border-color: color-mix(in srgb, var(--task-chip-border, #727272) 26%, #454545 74%);
+      color: #e4e4e4;
     }
-    html[data-theme="dark"] .stepper-label { background: #151d29; border-color: #344154; }
-    html[data-theme="dark"] .finish-btn.status-reopen { background: #1a2230; color: #b8c4d4; }
-    html[data-theme="dark"] .finish-btn.status-todo { background: #16284d; color: #bed3ff; }
+    html[data-theme="dark"] .stepper-label { background: #1c1c1c; border-color: #404040; }
+    html[data-theme="dark"] .finish-btn.status-reopen { background: #212121; color: #c3c3c3; }
+    html[data-theme="dark"] .finish-btn.status-todo { background: #272727; color: #d2d2d2; }
     html[data-theme="dark"] .finish-btn.status-ongoing { background: #3a2c10; color: #f7d58b; }
     html[data-theme="dark"] .finish-btn.status-finish { background: #183224; color: #9fe0b5; }
-    html[data-theme="dark"] .notice { background: #14203a; border-color: #294675; color: #b8d2ff; }
+    html[data-theme="dark"] .notice { background: #1f1f1f; border-color: #434343; color: #d0d0d0; }
     html[data-theme="dark"] .app.header-collapsed .toolbar { box-shadow: 0 12px 32px rgba(0,0,0,.38); }
-    html[data-theme="dark"] .file-status { background: rgba(7,12,20,.35); border-color: rgba(130,160,205,.25); }
-    html[data-theme="dark"] .icon-btn { color: #9ba9bb; }
+    html[data-theme="dark"] .file-status { background: rgba(12,12,12,.35); border-color: rgba(160,160,160,.25); }
+    html[data-theme="dark"] .icon-btn { color: #a7a7a7; }
     html[data-theme="dark"] .icon-btn:hover { background: rgba(255,255,255,.07); color: #fff; }
     html[data-theme="dark"] .danger { color: #ff8b8b !important; }
     html[data-theme="dark"] dialog::backdrop { background: rgba(0, 0, 0, .66); }
-    html[data-theme="dark"] .modal-head { border-color: #263244; }
+    html[data-theme="dark"] .modal-head { border-color: #313131; }
     html[data-theme="dark"] .bar { box-shadow: 0 3px 10px rgba(0,0,0,.34); }
     html[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.85); }
 
@@ -322,7 +322,7 @@
     .task-action-menu { position: fixed; inset: auto; margin: 0; padding: 5px; width: 180px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--text); box-shadow: 0 8px 28px #0003; }
     .task-action-menu button { display: block; width: 100%; padding: 8px; text-align: left; background: transparent; border: 0; border-radius: 4px; color: inherit; font-size: 12px; }
     .task-action-menu button:hover, .task-action-menu button:focus-visible { background: #64748b26; }
-    html[data-theme="dark"] .task-action-menu { background: #252d38; }
+    html[data-theme="dark"] .task-action-menu { background: #2b2b2b; }
 
     .mobile-views, .mobile-controls-toggle, .mobile-info-toggle, .mobile-group-label, .expanded-task-label { display:none; }
     @media (max-width: 900px) {
@@ -372,11 +372,13 @@
       .app.mobile-timeline .task-row .bar.label-expanded { overflow:visible; z-index:5; }
       .app.mobile-timeline .task-row .bar.label-expanded .bar-title { visibility:hidden; }
       .app.mobile-timeline .task-row .bar.label-expanded .expanded-task-label { display:flex; }
-      .app.mobile-timeline .expanded-task-label { position:absolute; left:0; top:0; width:max-content; height:100%; align-items:center; gap:6px; padding:0 3px 0 8px; white-space:nowrap; color:white; background:color-mix(in srgb, var(--bar-color) 72%, transparent); border-radius:7px; box-shadow:0 3px 10px rgba(0,0,0,.2); z-index:2; }
-      .app.mobile-timeline .expanded-task-status { touch-action:manipulation; height:24px; border:1px solid #ffffff80; border-radius:5px; background:#142438d9; color:#fff; padding:0 6px; font-size:10px; font-weight:700; white-space:nowrap; }
+      .app.mobile-timeline .expanded-task-label { position:absolute; left:0; top:0; width:max-content; height:100%; align-items:center; gap:6px; padding:0 3px 0 8px; white-space:nowrap; color:var(--bar-text); background:color-mix(in srgb, var(--bar-color) 72%, transparent); border-radius:7px; box-shadow:0 3px 10px rgba(0,0,0,.2); z-index:2; }
+      .app.mobile-timeline .expanded-task-label > span:first-child { background:var(--bar-color); border-radius:3px; padding:1px 2px; }
+      .app.mobile-timeline .expanded-duration-value { background:var(--bar-color); border-radius:3px; }
+      .app.mobile-timeline .expanded-task-status { touch-action:manipulation; height:24px; border:1px solid #ffffff80; border-radius:5px; background:#242424; color:#fff; padding:0 6px; font-size:10px; font-weight:700; white-space:nowrap; }
       .app.mobile-timeline .expanded-task-controls { position:absolute; right:calc(100% + 4px); top:0; display:flex; align-items:center; gap:3px; height:100%; padding:0 3px; background:color-mix(in srgb, var(--bar-color) 72%, transparent); border-radius:7px; }
       .app.mobile-timeline .expanded-duration-value { min-width:1.5em; text-align:center; font-size:11px; font-weight:700; }
-      .app.mobile-timeline .expanded-duration { touch-action:manipulation; min-width:24px; height:24px; border:1px solid #ffffff80; border-radius:5px; background:#142438e8; color:#fff; font-size:14px; font-weight:700; padding:0 5px; }
+      .app.mobile-timeline .expanded-duration { touch-action:manipulation; min-width:24px; height:24px; border:1px solid #ffffff80; border-radius:5px; background:#242424; color:#fff; font-size:14px; font-weight:700; padding:0 5px; }
       .app.mobile-timeline .group-row .sticky-left { overflow:visible; z-index:8; justify-content:center; }
       .app.mobile-timeline .group-main { display:none; }
       .app.mobile-timeline .header-left { font-size:0; padding:0; }
@@ -721,6 +723,15 @@
       if (!/^[0-9a-fA-F]{6}$/.test(full)) return { r: 238, g: 244, b: 255 };
       return { r: parseInt(full.slice(0, 2), 16), g: parseInt(full.slice(2, 4), 16), b: parseInt(full.slice(4, 6), 16) };
     }
+    function contrastText(hex) {
+      const { r, g, b } = hexToRgb(hex);
+      const linear = [r, g, b].map(value => {
+        const channel = value / 255;
+        return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+      });
+      const luminance = linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+      return (luminance + 0.05) / 0.05 >= 1.05 / (luminance + 0.05) ? '#000000' : '#ffffff';
+    }
     function rgbToHex({ r, g, b }) {
       return '#' + [r, g, b].map(v => clamp(Math.round(v), 0, 255).toString(16).padStart(2, '0')).join('');
     }
@@ -786,13 +797,13 @@
     function getTaskToneSet(groupId='') {
       const group = getGroupById(groupId);
       const tint = group?.tint || '#eef4ff';
-      const hsl = rgbToHsl(hexToRgb(tint));
-      const barColor = adjustHsl(tint, { s: Math.max(0.32, hsl.s * 0.85), l: Math.min(0.66, Math.max(0.56, hsl.l - 0.18)) });
+      const barColor = tint;
+      const barText = contrastText(barColor);
       const soft = mixHex(tint, '#ffffff', 0.28);
       const lane = mixHex(tint, '#ffffff', 0.56);
       const chipBg = mixHex(tint, '#ffffff', 0.34);
       const chipBorder = mixHex(tint, '#9ca3af', 0.72);
-      return { tint, soft, lane, chipBg, chipBorder, barColor };
+      return { tint, soft, lane, chipBg, chipBorder, barColor, barText };
     }
     function todayColumnHTML(start, daysVisible) {
       const todayISO = new Date().toISOString().slice(0,10);
@@ -1202,7 +1213,7 @@
                 </div>
               </div>
               <div class="timeline">${todayColumn}
-                ${offscreen ? '' : `<div class="bar ${!t.start?'unscheduled':''} ${isFinished ? 'is-finished' : ''} ${compactBar ? 'compact' : ''} ${tinyBar ? 'tiny' : ''} ${mobileExpandAllNames || expandedMobileTaskIds.has(t.id) ? 'label-expanded' : ''}" data-bar-id="${t.id}" data-full-title="${esc(t.title)}" title="${esc(t.title)} • ${statusMeta.label} • ${t.duration}d" style="left:${t.start?left:8}px;width:${t.start?width:130}px;background:${tones.barColor};--bar-color:${tones.barColor}"><span class="bar-title">${esc(t.title)}</span><span class="duration">${t.duration}d</span><span class="expanded-task-label"><span>${esc(t.title)}</span><span class="expanded-task-controls"><button type="button" class="expanded-task-status" data-action="toggle-status" data-id="${t.id}" aria-label="Status ${esc(statusMeta.label)}. Tap to change status">${esc(statusMeta.button)}</button><button type="button" class="expanded-duration" data-action="change-duration" data-days="-1" data-id="${t.id}" aria-label="Reduce duration by one workday">−</button><span class="expanded-duration-value" aria-label="Duration: ${t.duration} workdays">${t.duration}</span><button type="button" class="expanded-duration" data-action="change-duration" data-days="1" data-id="${t.id}" aria-label="Increase duration by one workday">＋</button></span></span>${t.start?'<span class="resize"></span>':''}</div>`}
+                ${offscreen ? '' : `<div class="bar ${!t.start?'unscheduled':''} ${isFinished ? 'is-finished' : ''} ${compactBar ? 'compact' : ''} ${tinyBar ? 'tiny' : ''} ${mobileExpandAllNames || expandedMobileTaskIds.has(t.id) ? 'label-expanded' : ''}" data-bar-id="${t.id}" data-full-title="${esc(t.title)}" title="${esc(t.title)} • ${statusMeta.label} • ${t.duration}d" style="left:${t.start?left:8}px;width:${t.start?width:130}px;background:${tones.barColor};--bar-color:${tones.barColor};--bar-text:${tones.barText};color:${tones.barText}"><span class="bar-title">${esc(t.title)}</span><span class="duration">${t.duration}d</span><span class="expanded-task-label"><span>${esc(t.title)}</span><span class="expanded-task-controls"><button type="button" class="expanded-task-status" data-action="toggle-status" data-id="${t.id}" aria-label="Status ${esc(statusMeta.label)}. Tap to change status">${esc(statusMeta.button)}</button><button type="button" class="expanded-duration" data-action="change-duration" data-days="-1" data-id="${t.id}" aria-label="Reduce duration by one workday">−</button><span class="expanded-duration-value" aria-label="Duration: ${t.duration} workdays">${t.duration}</span><button type="button" class="expanded-duration" data-action="change-duration" data-days="1" data-id="${t.id}" aria-label="Increase duration by one workday">＋</button></span></span>${t.start?'<span class="resize"></span>':''}</div>`}
               </div>
             </div>`;
           });
