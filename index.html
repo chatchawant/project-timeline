@@ -326,7 +326,7 @@
     html[data-theme="dark"] .task-action-menu { background: #2b2b2b; }
 
     .mobile-views, .mobile-controls-toggle, .mobile-info-toggle, .mobile-group-label, .expanded-task-label { display:none; }
-    @media (max-width: 900px) {
+    @media (max-width: 1280px) {
       .app { min-height:100dvh; padding: calc(env(safe-area-inset-top, 0px) + 12px) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); }
       .topbar { padding:10px 12px; gap:8px; flex-direction:row; align-items:center; }
       .topbar > div:first-child { min-width:0; flex:1; }
@@ -688,7 +688,7 @@
     function showFloatingNotice(ms = 4200) {
       const app = $('.app');
       const notice = $('#projectNotice');
-      if ((!app?.classList.contains('header-collapsed') && !window.matchMedia('(max-width: 900px)').matches) || !notice) return;
+      if ((!app?.classList.contains('header-collapsed') && !window.matchMedia('(max-width: 1280px)').matches) || !notice) return;
       clearTimeout(floatingNoticeTimer);
       notice.classList.add('float-show');
       if (ms > 0) floatingNoticeTimer = setTimeout(() => notice.classList.remove('float-show'), ms);
@@ -1351,7 +1351,7 @@
       bar.setAttribute('aria-label',bar.title + ' — tap to expand the task name');
       function toggleLabel() {
         if (suppressTap) { suppressTap=false; return; }
-        if (!window.matchMedia('(max-width: 900px)').matches || !$('.app').classList.contains('mobile-timeline')) return;
+        if (!window.matchMedia('(max-width: 1280px)').matches || !$('.app').classList.contains('mobile-timeline')) return;
         hideFloatingNotice();
         const expand=!bar.classList.contains('label-expanded');
         if (!mobileExpandAllNames) { expandedMobileTaskIds.clear(); document.querySelectorAll('.bar.label-expanded').forEach(other=>{other.classList.remove('label-expanded');other.setAttribute('aria-expanded','false');}); }
@@ -1365,7 +1365,7 @@
       bar.addEventListener('click',toggleLabel);
       bar.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleLabel();}});
       bar.addEventListener('pointerdown',ev=>{
-        if (!window.matchMedia('(max-width: 900px)').matches || !$('.app').classList.contains('mobile-timeline') || ev.button!==0) return;
+        if (!window.matchMedia('(max-width: 1280px)').matches || !$('.app').classList.contains('mobile-timeline') || ev.button!==0) return;
         const task=state.tasks.find(x=>x.id===id); if (!task?.start) return;
         const pointerId=ev.pointerId, x0=ev.clientX, y0=ev.clientY, original=task.start;
         let active=false, delta=0;
@@ -1377,7 +1377,7 @@
         bar.addEventListener('pointermove',move);bar.addEventListener('pointerup',up);bar.addEventListener('pointercancel',cancel);
       });
       const startPointer = (ev, mode) => {
-        if (ev.pointerType === 'touch' || (window.matchMedia('(max-width: 900px)').matches && $('.app').classList.contains('mobile-timeline')) || ev.button!==0) return;
+        if (ev.pointerType === 'touch' || (window.matchMedia('(max-width: 1280px)').matches && $('.app').classList.contains('mobile-timeline')) || ev.button!==0) return;
         ev.preventDefault(); ev.stopPropagation();
         const t=state.tasks.find(x=>x.id===id); if (!t || !t.start) return;
         const x0=ev.clientX, start0=t.start, dur0=t.duration;
@@ -1691,7 +1691,7 @@
       renderSchedule(); requestAnimationFrame(updateMobileChartHeight);
     }
     function updateMobileChartHeight() {
-      if (!window.matchMedia('(max-width: 900px)').matches) return;
+      if (!window.matchMedia('(max-width: 1280px)').matches) return;
       const scroller=$('#scroller');
       const viewport=window.visualViewport;
       const visibleBottom=viewport ? viewport.offsetTop+viewport.height : window.innerHeight;
@@ -1748,7 +1748,7 @@
       applyTheme(state.project.theme);
       applyHeaderCollapse(state.project.headerCollapsed, false);
       render();
-      if (window.matchMedia('(max-width: 900px)').matches) setMobileView('timeline');
+      if (window.matchMedia('(max-width: 1280px)').matches) setMobileView('timeline');
     }
     initializeApp();
   </script>
