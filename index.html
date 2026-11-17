@@ -152,6 +152,9 @@
     .icon-btn:hover { background: rgba(15,23,42,.06); color: #0f172a; }
 
     .task-row .sticky-left { height: 118px; padding: 10px 12px; border-bottom: 1px solid var(--line); display: flex; align-items: flex-start; gap: 8px; overflow: hidden; background: var(--task-soft, #fff); }
+    .task-row.drop-before { box-shadow:inset 0 2px #528aff; }
+    .task-row.drop-after { box-shadow:inset 0 -2px #528aff; }
+    button.drag-dot { cursor:grab; touch-action:none; border:0; background:transparent; padding:0 3px; }
     .drag-dot { color: #c0c8d4; user-select: none; line-height: 22px; }
     .task-left { min-width: 0; flex: 1; }
     .task-titleline { display: flex; align-items: center; gap: 6px; min-width: 0; }
@@ -205,6 +208,15 @@
     .modal-foot { padding: 14px 18px 18px; display: flex; justify-content: flex-end; gap: 8px; }
     .danger { color: #b91c1c !important; }
 
+    #taskDialog [hidden] { display:none !important; }
+    .people-row { display:grid;grid-template-columns:minmax(0,1fr) 40px 48px;gap:6px;align-items:center;margin:5px 0; }
+    .people-row input { min-width:0;width:100%; }
+    .people-row button { text-align:center; }
+    #peopleDialog .people-row .task-delete { width:auto; padding:0 6px; }
+    .task-people { display:flex; gap:3px; max-width:50%; overflow-x:auto; scrollbar-width:none; flex-shrink:0; }
+    .task-people:empty, .app.mobile-timeline .task-people { display:none; }
+    .task-titleline .index-badge { flex-shrink:0; display:block; min-width:0; max-width:70px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:18px; }
+    .task-delete { color:#dc5555; }
     .toast { position: fixed; right: 18px; bottom: 18px; background: #172033; color: #fff; border-radius: 10px; padding: 10px 14px; font-size: 12px; opacity: 0; transform: translateY(10px); pointer-events: none; transition: .2s; z-index: 99; }
     .toast.show { opacity: 1; transform: translateY(0); }
     body:has(.sync-alarm.active) .toast { bottom: 58px; }
@@ -365,7 +377,7 @@
       .app.mobile-timeline .task-controls { margin-top:3px; }
       .app.mobile-timeline .task-row .sticky-left { padding:4px 5px; gap:3px; }
       .app.mobile-timeline .drag-dot { display:none; }
-      .app.mobile-timeline .index-badge { display:none; }
+      .app.mobile-timeline .task-titleline .index-badge { display:none; }
       .app.mobile-timeline .task-title-input { font-size:11px; padding:0 2px; }
       .app.mobile-timeline .task-date, .app.mobile-timeline .task-controls [title="Edit duration"], .app.mobile-timeline .task-controls .finish-btn { display:none; }
       .app.mobile-timeline .task-row .bar { top:4px; height:26px; touch-action:none; -webkit-touch-callout:none; }
@@ -458,6 +470,8 @@
         </details>
         <button class="btn dark" id="addGroupBtn">▣ Add Group</button>
         <button class="btn blue" id="addTaskBtn">＋ Add Task</button>
+        <span style="position:relative"><button class="btn" id="addPeopleBtn" aria-expanded="false" aria-controls="peopleDialog">＋ Add People ▾</button>
+        </span>
         <input id="projectFileInput" type="file" accept=".json,.project.json,application/json" hidden>
       </div>
     </section>
@@ -480,6 +494,8 @@
       <div class="modal-head"><h2 id="groupModalTitle">Add project group</h2><button class="icon-btn" value="cancel" type="submit">✕</button></div>
       <div class="modal-body">
         <div class="field"><label>Group name</label><input id="groupNameInput" required placeholder="e.g. New Year Gift Box"></div>
+        <div class="field"><label for="groupOwnerInput">Group owner</label><input id="groupOwnerInput" list="groupPeopleOptions"><datalist id="groupPeopleOptions"></datalist></div>
+        <div class="field"><label id="groupAssigneesLabel">Assigned to</label><div id="groupAssigneesSummary" role="status" aria-labelledby="groupAssigneesLabel" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;overflow-wrap:anywhere"></div><select id="pickGroupAssignee" aria-label="Add a group assignee"></select></div>
         <div class="field"><label for="groupTintInput">Group color</label><div style="display:flex;align-items:center;gap:10px">
           <select id="groupTintInput" style="flex:1"><option value="#e8f7fb">Aqua</option><option value="#fff9e7">Warm cream</option><option value="#eaf8ef">Mint</option><option value="#f5efff">Lavender</option><option value="#eef4ff">Blue</option><option value="custom">Custom color</option></select>
           <input id="groupColorInput" type="color" value="#e8f7fb" aria-label="Choose a custom group color" title="Choose a custom group color" style="width:46px;height:36px;padding:2px;border:1px solid var(--line-strong);border-radius:8px;background:var(--panel);cursor:pointer">
@@ -489,24 +505,36 @@
     </form>
   </dialog>
 
+  <div id="peopleDialog" popover class="task-action-menu" style="width:min(290px,calc(100vw - 16px));max-height:70vh;overflow:auto;color:var(--text)">
+    <form id="peopleForm">
+      <div class="modal-head"><h2>Add people</h2></div>
+      <div class="modal-body">
+        <div id="peopleRoster"></div>
+        <div class="people-row"><input id="peopleInput" aria-label="New person name" placeholder="Name…" required><input type="color" id="newPersonColor" aria-label="New person color" value="#719ce0"><button type="submit" class="btn blue">Add</button></div>
+      </div>
+      <div class="modal-foot"><button type="button" class="btn ghost" id="cancelPeopleBtn">Done</button></div>
+    </form>
+  </div>
+
   <dialog id="taskDialog">
     <form method="dialog" id="taskForm">
       <div class="modal-head"><h2 id="taskModalTitle">Add task</h2><button class="icon-btn" value="cancel" type="submit">✕</button></div>
       <div class="modal-body">
-        <div class="field"><label>Task title / Linked product</label><input id="taskTitleInput" required placeholder="e.g. Central world (decline)"><div style="font-size:10px;color:#64748b">The linked product automatically uses the same name as the task title.</div></div>
-        <div class="field"><label>Project group</label><select id="taskGroupInput"></select></div>
+        <div class="field" data-task-field="add"><label>Task title / Linked product</label><input id="taskTitleInput" required placeholder="e.g. Central world (decline)"><div style="font-size:10px;color:#64748b">The linked product automatically uses the same name as the task title.</div></div>
+        <div class="field" data-task-field="details"><label>Project group</label><select id="taskGroupInput"></select></div>
         <div class="grid2">
-          <div class="field"><label>Start date</label><input id="taskStartInput" type="date"></div>
-          <div class="field"><label>Duration (days)</label><input id="taskDurationInput" type="number" min="1" max="365" value="4"></div>
+          <div class="field" data-task-field="add"><label>Start date</label><input id="taskStartInput" type="date"></div>
+          <div class="field" data-task-field="duration"><label>Duration (days)</label><input id="taskDurationInput" type="number" min="1" max="365" value="4"></div>
         </div>
         <div class="grid2">
-          <div class="field"><label>Index</label><input id="taskIndexInput" type="number" min="1" value="1"></div>
-          <div class="field"><label>Status</label><select id="taskStatusInput"><option value="reopen">Reopen</option><option value="todo">To Be Done</option><option value="ongoing">Ongoing</option><option value="finish">Finish</option></select></div>
+          <div class="field" data-task-field="people"><label for="taskOwnerInput">Task owner</label><input id="taskOwnerInput" list="taskPeopleOptions" placeholder="Owner name"><datalist id="taskPeopleOptions"></datalist></div>
+          <div class="field" data-task-field="add"><label>Status</label><select id="taskStatusInput"><option value="reopen">Reopen</option><option value="todo">To Be Done</option><option value="ongoing">Ongoing</option><option value="finish">Finish</option></select></div>
         </div>
-        <div class="field"><label>📁 File location</label><input id="taskFileLocationInput" placeholder="e.g. D:\\Projects\\Bruno Glasses or file:///..."><div class="resource-hint">Saved as a path reference. The folder button on the task copies this location.</div></div>
-        <div class="field"><label>🔗 Web link</label><input id="taskWebLinkInput" type="url" placeholder="https://drive.google.com/..."><div class="resource-hint">The link button opens this address in a new tab.</div></div>
-        <div class="field"><label>📝 Notes</label><textarea id="taskNoteInput" placeholder="Add notes, client feedback, dimensions, next steps, etc."></textarea></div>
-        <div style="font-size:10px;color:#64748b">Leave the start date empty to keep the task unscheduled.</div>
+        <div class="field" data-task-field="details"><label>📁 File location</label><input id="taskFileLocationInput" placeholder="e.g. D:\\Projects\\Bruno Glasses or file:///..."><div class="resource-hint">Saved as a path reference. The folder button on the task copies this location.</div></div>
+        <div class="field" data-task-field="details"><label>🔗 Web link</label><input id="taskWebLinkInput" type="url" placeholder="https://drive.google.com/..."><div class="resource-hint">The link button opens this address in a new tab.</div></div>
+        <div class="field" data-task-field="people"><label id="taskAssigneesLabel">Assigned to</label><div id="taskAssigneesSummary" role="status" aria-labelledby="taskAssigneesLabel" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;overflow-wrap:anywhere"></div><select id="pickAssignee" aria-label="Add or remove a task assignee"></select></div>
+        <div class="field" data-task-field="details"><label>📝 Notes</label><textarea id="taskNoteInput" placeholder="Add notes, client feedback, dimensions, next steps, etc."></textarea></div>
+        <div data-task-field="add" style="font-size:10px;color:#64748b">Leave the start date empty to keep the task unscheduled.</div>
       </div>
       <div class="modal-foot">
         <button class="btn ghost danger" id="deleteTaskBtn" type="button" style="display:none;margin-right:auto">Delete task</button>
@@ -549,7 +577,7 @@
     const CLOUD_SESSION_KEY = 'projectTimelineManager.cloudSession.v1';
     const CLOUD_DEFAULT = {
       url: 'https://vlrmatnlpiolvwvqzgap.supabase.co',
-      key: 'sb_publishable_ysOuFAPebAQeLVnnCMRFbg_AgGCV-8E'
+      key: ''
     };
     const MS_DAY = 86400000;
     const TASK_STATUS_ORDER = ['reopen', 'todo', 'ongoing', 'finish'];
@@ -588,6 +616,16 @@
       } catch { return structuredClone(demo); }
     }
     let localSaveFailed = false;
+    const undoHistory = [];
+    const taskSnapshot = () => JSON.stringify({tasks:state.tasks, groups:state.groups, people:state.people, personColors:state.personColors});
+    let savedTasks = taskSnapshot();
+    function resetUndo() { undoHistory.length=0; savedTasks=taskSnapshot(); }
+    function undoChange() {
+      if (!undoHistory.length) return toast('Nothing to undo');
+      Object.assign(state, JSON.parse(undoHistory.pop()));
+      savedTasks=taskSnapshot();
+      save(); render(); toast('Change undone');
+    }
     function saveLocalOnly() {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -599,6 +637,12 @@
       if (localSaveFailed || !fileSystemSupported()) updateFileStatus('local');
     }
     function save() {
+      const next=taskSnapshot();
+      if (next!==savedTasks) {
+        undoHistory.push(savedTasks);
+        if (undoHistory.length>50) undoHistory.shift();
+        savedTasks=next;
+      }
       saveLocalOnly();
       scheduleLinkedFileSave();
       scheduleCloudSave();
@@ -666,7 +710,10 @@
       v.project.theme = v.project.theme === 'dark' ? 'dark' : 'light';
       v.project.headerCollapsed = !!v.project.headerCollapsed;
       v.project.hideFinished = !!v.project.hideFinished;
-      v.tasks = v.tasks.map(t => ({ ...t, product: t.title || '', status: normalizeTaskStatus(t), fileLocation: String(t.fileLocation || ''), webLink: String(t.webLink || ''), note: String(t.note || ''), start: t.start ? normalizeToBusinessDay(t.start) : null }));
+      v.personColors = Object.fromEntries(Object.entries(v.personColors || {}).filter(([,color])=>/^#[0-9a-f]{6}$/i.test(color)));
+      v.groups = v.groups.map(g=>({...g,owner:typeof g.owner==="string"?g.owner:"",assignees:Array.isArray(g.assignees)?g.assignees.filter(n=>typeof n==="string"):[]}));
+      v.people = Array.isArray(v.people) ? v.people.filter(name=>typeof name==="string") : [];
+      v.tasks = v.tasks.map(t => ({ ...t, owner: typeof t.owner==='string' ? t.owner : '', assignees: Array.isArray(t.assignees) ? t.assignees.filter(name=>typeof name==='string') : [], product: t.title || '', status: normalizeTaskStatus(t), fileLocation: String(t.fileLocation || ''), webLink: String(t.webLink || ''), note: String(t.note || ''), start: t.start ? normalizeToBusinessDay(t.start) : null }));
       return v;
     }
     function applyTheme(theme = 'light') {
@@ -995,7 +1042,7 @@
       const parsed = JSON.parse(await file.text());
       const incoming = parseProjectPayload(parsed);
       if (confirmReplace && !confirm(`Load the project already stored in “${handle.name}”?\n\nOK = load that file\nCancel = keep this browser project and overwrite the file`)) return false;
-      state = incoming;
+      state = incoming; resetUndo();
       saveLocalOnly();
       onlyUnscheduled = false;
       $('#search').value = '';
@@ -1050,7 +1097,7 @@
         if (!file.size) throw new Error('Connected project file is empty');
         const incoming = parseProjectPayload(JSON.parse(await file.text()));
         if (JSON.stringify(state) !== initialState) throw new Error('Project changed during reconnect; local edits preserved');
-        state = incoming;
+        state = incoming; resetUndo();
         saveLocalOnly();
         });
         if (!linkedFileHandle) { updateFileStatus('local'); return; }
@@ -1084,7 +1131,7 @@
         const parsed = JSON.parse(await file.text());
         const incoming = parseProjectPayload(parsed);
         if (!confirm('Load this project? It will replace the project currently saved in this browser.')) return;
-        state = incoming;
+        state = incoming; resetUndo();
         save();
         onlyUnscheduled = false;
         $('#search').value = '';
@@ -1129,19 +1176,21 @@
       $('#taskGroupInput').innerHTML = state.groups.map(g=>`<option value="${g.id}">${esc(g.name)}</option>`).join('');
     }
 
+    function orderedGroupTasks(gid) {
+      const order=state.groups.find(g=>g.id===gid)?.taskOrder;
+      const rank=new Map((Array.isArray(order)?order:[]).map((id,i)=>[id,i]));
+      return state.tasks.filter(t=>t.groupId===gid).sort((a,b)=>
+        (rank.get(a.id)??Infinity)-(rank.get(b.id)??Infinity) ||
+        (a.start||'9999').localeCompare(b.start||'9999'));
+    }
     function visibleTasksForGroup(gid) {
       const q = $('#search').value.trim().toLowerCase();
       const gf = $('#groupFilter').value;
       if (gf !== 'all' && gf !== gid) return [];
-      return state.tasks.filter(t => t.groupId===gid)
+      return orderedGroupTasks(gid)
         .filter(t => !state.project.hideFinished || normalizeTaskStatus(t) !== 'finish')
         .filter(t => !onlyUnscheduled || !t.start)
-        .filter(t => !q || `${t.title} ${t.product}`.toLowerCase().includes(q))
-        .sort((a, b) => {
-          if (!a.start) return b.start ? 1 : 0;
-          if (!b.start) return -1;
-          return a.start.localeCompare(b.start);
-        });
+        .filter(t => !q || `${t.title} ${t.product}`.toLowerCase().includes(q));
     }
 
     function renderSchedule() {
@@ -1175,7 +1224,7 @@
         groupsRendered++;
         const groupTones = getGroupToneSet(g.id);
         html += `<div class="row group-row" style="--group-header:${groupTones.headerBg};--group-timeline:${groupTones.timelineBg};">
-          <div class="sticky-left" style="background:${groupTones.headerBg}">${!g.collapsed && tasks.length ? `<span class="mobile-group-label" style="height:${tasks.length * 34}px" title="${esc(g.name)}">${esc(g.name)}</span>` : ''}<div class="group-main"><span aria-hidden="true">⠿</span><span class="group-name" title="${esc(g.name)}">${esc(g.name)}</span><span class="group-count">(${tasks.length})</span></div>
+          <div class="sticky-left" style="background:${groupTones.headerBg}">${!g.collapsed && tasks.length ? `<span class="mobile-group-label" style="height:${tasks.length * 34}px" title="${esc(g.name)}">${esc(g.name)}</span>` : ''}<div class="group-main"><span aria-hidden="true">⠿</span><span class="group-name" title="${esc(g.name)}">${esc(g.name)}</span><span class="group-count">(${tasks.length})</span><span class="task-people">${groupPeopleBadges(g)}</span></div>
             <div class="group-actions">
               <button class="icon-btn" data-action="quick-add-task" data-id="${g.id}" title="Quick add a 3-day task starting today" aria-label="Quick add task to ${esc(g.name)}">＋</button>
               <button class="icon-btn" data-action="collapse-group" data-id="${g.id}" title="Collapse">${g.collapsed?'▾':'▴'}</button>
@@ -1201,15 +1250,17 @@
             const tinyBar = width < 76;
             html += `<div class="row task-row ${isFinished ? 'is-finished' : ''}" data-task-row="${t.id}" style="--task-soft:${tones.soft};--task-lane:${tones.lane};--task-chip-bg:${tones.chipBg};--task-chip-border:${tones.chipBorder};">
               <div class="sticky-left">
-                <div class="drag-dot">⠿</div>
+                <button type="button" class="drag-dot" title="Drag to reorder, or press ↑ / ↓" aria-label="Reorder task">⠿</button>
                 <div class="task-left">
-                  <div class="task-titleline"><span class="index-badge">#${t.index}</span><input class="task-title-input" data-id="${t.id}" value="${esc(t.title)}" title="Click to rename this subtask" aria-label="Subtask name"></div>
+                  <div class="task-titleline"><span class="task-people">${[...(t.owner ? [[t.owner,'Owner']] : []), ...(t.assignees||[]).map(name=>[name,'Assigned to'])].map(([name,role])=>`<span class="index-badge" style="${personBadgeStyle(name)}" title="${role}: ${esc(name)}">${role==='Owner' ? '♛ ' : ''}${esc(name)}</span>`).join('')}</span><input class="task-title-input" data-id="${t.id}" value="${esc(t.title)}" title="Click to rename this subtask" aria-label="Subtask name"></div>
                   <div class="task-controls">
+                    <button class="mini" data-action="edit-people" data-id="${t.id}" aria-label="Edit task people" title="Edit task people">♙</button>
                     <input class="mini task-date" data-id="${t.id}" type="date" value="${t.start||''}" aria-label="Start date">
-                    <button class="mini" data-action="edit-task" data-id="${t.id}" title="Edit duration">${t.duration}d</button>
+                    <button class="mini" data-action="edit-duration" data-id="${t.id}" title="Edit duration">${t.duration}d</button>
                     <button class="mini finish-btn status-${status}" data-action="toggle-status" data-id="${t.id}" title="Click to cycle status: Reopen → To Be Done → Ongoing → Finish">${statusMeta.button}</button>
                     ${t.fileLocation || t.webLink || t.note ? `<button class="mini task-more" data-action="task-menu" data-id="${t.id}" aria-label="File, link and note actions" aria-expanded="false">•••</button>` : ''}
                     <button class="mini ${t.fileLocation || t.webLink || t.note ? '' : 'task-more'}" data-action="edit-task" data-id="${t.id}" aria-label="Edit task and duration" title="Edit task / duration">✎</button>
+                    <button class="mini danger task-delete" data-action="delete-task" data-id="${t.id}" aria-label="Delete task" title="Delete task">⌫</button>
                   </div>
                 </div>
               </div>
@@ -1225,7 +1276,52 @@
       wireRows();
     }
 
+    function wireTaskReorder(handle) {
+      const row=handle.closest('[data-task-row]'), id=row.dataset.taskRow;
+      const group=state.tasks.find(t=>t.id===id)?.groupId;
+      function reorder(target, after) {
+        if(!target || target===id) return;
+        const g=state.groups.find(g=>g.id===group);
+        if(!g) return;
+        const ids=orderedGroupTasks(group).map(t=>t.id).filter(key=>key!==id);
+        const index=ids.indexOf(target);
+        if(index<0) return;
+        ids.splice(index+Number(after),0,id);
+        g.taskOrder=ids;
+        save(); render(); toast('Task order updated');
+      }
+      handle.addEventListener('keydown',e=>{
+        if(e.key!=='ArrowUp' && e.key!=='ArrowDown')return;
+        e.preventDefault();
+        const tasks=visibleTasksForGroup(group), after=e.key==='ArrowDown';
+        reorder(tasks[tasks.findIndex(t=>t.id===id)+(after?1:-1)]?.id,after);
+        [...document.querySelectorAll('[data-task-row]')].find(el=>el.dataset.taskRow===id)?.querySelector('.drag-dot')?.focus();
+      });
+      handle.addEventListener('pointerdown',e=>{
+        if(e.button!==0 || !e.isPrimary)return;
+        handle.setPointerCapture(e.pointerId);
+        let target,after;
+        const clear=()=>{target?.classList.remove('drop-before','drop-after');target=null;};
+        handle.onpointermove=ev=>{
+          clear();
+          const next=document.elementFromPoint(ev.clientX,ev.clientY)?.closest('[data-task-row]');
+          if(!next||next===row||!state.tasks.some(t=>t.id===next.dataset.taskRow&&t.groupId===group))return;
+          target=next;
+          const rect=target.getBoundingClientRect();
+          after=ev.clientY>rect.top+rect.height/2;
+          target.classList.add(after?'drop-after':'drop-before');
+        };
+        const finish=ev=>{
+          const key=target?.dataset.taskRow;clear();
+          handle.onpointermove=handle.onpointerup=handle.onpointercancel=handle.onlostpointercapture=null;
+          if(ev.type==='pointerup')reorder(key,after);
+        };
+        handle.onpointerup=handle.onpointercancel=handle.onlostpointercapture=finish;
+      });
+    }
+
     function wireRows() {
+      document.querySelectorAll('button.drag-dot').forEach(wireTaskReorder);
       document.querySelectorAll('[data-action]').forEach(el => el.addEventListener('click', handleAction));
       document.querySelectorAll('.task-date').forEach(el => el.addEventListener('change', e => {
         const t = state.tasks.find(x=>x.id===e.target.dataset.id); if (!t) return; t.start = e.target.value ? normalizeToBusinessDay(e.target.value) : null; save(); render(); toast('Task date updated');
@@ -1285,6 +1381,9 @@
       const a=e.currentTarget.dataset.action, id=e.currentTarget.dataset.id;
       if (a==='task-menu') return openTaskMenu(e.currentTarget, id);
       if (a==='edit-task') return openTaskDialog(id);
+      if (a==='edit-duration') return openTaskDialog(id,'duration');
+      if (a==='edit-people') return openTaskDialog(id,'people');
+      if (a==='delete-task') return deleteTask(id);
       if (a==='copy-file-location') {
         const t=state.tasks.find(x=>x.id===id); if (!t?.fileLocation) return;
         copyText(t.fileLocation).then(ok => toast(ok ? 'File location copied' : 'Could not copy file location')); return;
@@ -1394,11 +1493,16 @@
       if (resize) resize.addEventListener('pointerdown', ev=>startPointer(ev,'resize'));
     }
 
+    let groupAssigneeDraft=[], taskAssigneeDraft=[];
     function openGroupDialog(id=null) {
       editingGroupId=id;
       const g=id?state.groups.find(x=>x.id===id):null;
       $('#groupModalTitle').textContent=g?'Edit project group':'Add project group';
       $('#groupNameInput').value=g?.name||'';
+      $('#groupOwnerInput').value=g?.owner||'';
+      groupAssigneeDraft=[...new Set(g?.assignees||[])];
+      $('#groupPeopleOptions').replaceChildren(...allPeople().map(name=>new Option(name,name)));
+      refreshGroupAssigneePicker();
       const tint = /^#[0-9a-f]{6}$/i.test(g?.tint || '') ? g.tint : '#e8f7fb';
       $('#groupColorInput').value=tint;
       $('#groupTintInput').value=[...$('#groupTintInput').options].some(o=>o.value.toLowerCase()===tint.toLowerCase()) ? tint : 'custom';
@@ -1407,28 +1511,54 @@
     function saveGroup() {
       const name=$('#groupNameInput').value.trim(); if (!name) return $('#groupNameInput').focus();
       const tint=$('#groupTintInput').value==='custom' ? $('#groupColorInput').value : $('#groupTintInput').value;
-      if (editingGroupId) { const g=state.groups.find(x=>x.id===editingGroupId); g.name=name; g.tint=tint; }
-      else state.groups.push({id:uid('g'),name,tint,collapsed:false});
+      const owner=$('#groupOwnerInput').value.trim();
+      const assignees=groupAssigneeDraft.filter(name=>name!==owner);
+      if (editingGroupId) { const g=state.groups.find(x=>x.id===editingGroupId); if(!g)return; Object.assign(g,{name,tint,owner,assignees}); }
+      else state.groups.push({id:uid('g'),name,tint,owner,assignees,collapsed:false});
       save(); $('#groupDialog').close(); render(); toast(editingGroupId?'Group updated':'Group added');
     }
+    function refreshGroupAssigneePicker() {
+      renderAssigneePicker('#groupAssigneesSummary','#pickGroupAssignee',groupAssigneeDraft);
+    }
+    function renderAssigneePicker(summary,picker,selected) {
+      $(summary).textContent=selected.join(', ')||'No assignees selected';
+      const names=[...new Set([...allPeople(),...selected])].filter(name=>!name.includes(','));
+      $(picker).replaceChildren(new Option('Add or remove a saved person',''),
+        ...names.map(name=>new Option((selected.includes(name)?'- ':'+ ')+name,name)));
+    }
+    $('#pickGroupAssignee').addEventListener('change',e=>{
+      const name=e.target.value;
+      if(name) groupAssigneeDraft=groupAssigneeDraft.includes(name)?groupAssigneeDraft.filter(n=>n!==name):[...groupAssigneeDraft,name];
+      refreshGroupAssigneePicker();
+    });
     $('#groupTintInput').addEventListener('change', e=>{ if (e.target.value !== 'custom') $('#groupColorInput').value=e.target.value; });
     $('#groupColorInput').addEventListener('input', ()=>{ $('#groupTintInput').value='custom'; });
 
-    function openTaskDialog(id=null) {
+    let taskDialogMode;
+    function openTaskDialog(id=null, mode=id?'details':'add') {
+      taskDialogMode=mode;
       if (!state.groups.length) { toast('Add a group first'); return; }
       editingTaskId=id;
       const t=id?state.tasks.find(x=>x.id===id):null;
-      $('#taskModalTitle').textContent=t?'Edit task':'Add task';
+      $('#taskModalTitle').textContent={add:'Add task',details:'Edit task',people:'Task people',duration:'Edit duration'}[mode];
+      $('#taskDialog').querySelectorAll('[data-task-field]').forEach(field=>field.hidden=mode!=='add'&&field.dataset.taskField!==mode);
+      $('#taskDialog').querySelectorAll('.grid2').forEach(grid=>grid.hidden=[...grid.children].every(field=>field.hidden));
+      $('#taskTitleInput').required=mode==='add';
       $('#taskTitleInput').value=t?.title||'';
       $('#taskGroupInput').value=t?.groupId||state.groups[0].id;
       $('#taskStartInput').value=t?.start||normalizeToBusinessDay(state.project.startDate);
       $('#taskDurationInput').value=t?.duration||4;
-      $('#taskIndexInput').value=t?.index||1;
+      $('#taskOwnerInput').value=t?.owner||'';
+      taskAssigneeDraft=[...new Set(t?.assignees||[])];
       $('#taskStatusInput').value=normalizeTaskStatus(t || {});
       $('#taskFileLocationInput').value=t?.fileLocation||'';
       $('#taskWebLinkInput').value=t?.webLink||'';
       $('#taskNoteInput').value=t?.note||'';
-      $('#deleteTaskBtn').style.display=t?'inline-flex':'none';
+      $('#deleteTaskBtn').style.display='none';
+      const names=allPeople();
+      const options=names.map(name=>new Option(name,name));
+      $('#taskPeopleOptions').replaceChildren(...options);
+      renderAssigneePicker('#taskAssigneesSummary','#pickAssignee',taskAssigneeDraft);
       $('#taskDialog').showModal();
     }
     function saveTask() {
@@ -1438,14 +1568,20 @@
         title, product:title,
         start:$('#taskStartInput').value ? normalizeToBusinessDay($('#taskStartInput').value) : null,
         duration:Math.max(1,Number($('#taskDurationInput').value)||1),
-        index:Math.max(1,Number($('#taskIndexInput').value)||1),
+        owner:$('#taskOwnerInput').value.trim(),
+        assignees:taskAssigneeDraft.filter(name=>name!==$('#taskOwnerInput').value.trim()),
         fileLocation:$('#taskFileLocationInput').value.trim(),
         webLink:$('#taskWebLinkInput').value.trim(),
         note:$('#taskNoteInput').value.trim(),
         color:getTaskToneSet($('#taskGroupInput').value).barColor,
         status:$('#taskStatusInput').value || (editingTaskId ? normalizeTaskStatus(state.tasks.find(x=>x.id===editingTaskId)) : 'todo')
       };
-      if (editingTaskId) Object.assign(state.tasks.find(x=>x.id===editingTaskId),data);
+      if (editingTaskId) {
+        const task=state.tasks.find(x=>x.id===editingTaskId);
+        if (!task) return;
+        const keys={details:['groupId','fileLocation','webLink','note','color'],people:['owner','assignees'],duration:['duration']}[taskDialogMode];
+        for (const key of keys) task[key]=data[key];
+      }
       else state.tasks.push({id:uid('t'),...data});
       save(); $('#taskDialog').close(); render(); toast(editingTaskId?'Task updated':'Task added');
     }
@@ -1463,13 +1599,99 @@
     $('#loadProjectBtn').addEventListener('click', () => { $('#backupMenu').open=false; $('#projectFileInput').click(); });
     $('#projectFileInput').addEventListener('change', e => importProject(e.target.files?.[0]));
     $('#addGroupBtn').addEventListener('click',()=>openGroupDialog());
+    function allPeople() {
+      return [...new Set([...state.people,...[...state.tasks,...state.groups].flatMap(item=>[item.owner,...(item.assignees||[])])].filter(Boolean))];
+    }
+    function groupPeopleBadges(g) {
+      return [...(g.owner?[[g.owner,true]]:[]),...(g.assignees||[]).map(name=>[name,false])].map(([name,own])=>
+        `<span class="index-badge" style="${personBadgeStyle(name)}" title="${own?'Group owner':'Assigned to'}: ${esc(name)}">${own?'♛ ':''}${esc(name)}</span>`).join('');
+    }
+    function personBadgeStyle(name) {
+      const color=Object.hasOwn(state.personColors,name) ? state.personColors[name] : '';
+      if (!/^#[0-9a-f]{6}$/i.test(color)) return '';
+      const rgb=color.slice(1).match(/../g).map(x=>parseInt(x,16)/255).map(x=>x<=.04045?x/12.92:((x+.055)/1.055)**2.4);
+      const light=rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722;
+      return `background:${color};border-color:${color};color:${light>.179?'#000':'#fff'}`;
+    }
+    function renderPeopleColors() {
+      const names=allPeople();
+      $('#peopleRoster').replaceChildren(...names.map(name=>{
+        const row=document.createElement('div'), picker=document.createElement('input');
+        row.className='people-row';
+        const field=document.createElement('input'), remove=document.createElement('button');
+        field.value=name;
+        field.setAttribute('aria-label','Rename '+name);
+        field.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();field.blur();}});
+        field.addEventListener('change',()=>{
+          const next=field.value.trim();
+          if(next===name)return;
+          if(!next || next.includes(',') || names.includes(next)){field.value=name;toast('Enter a unique name without commas');return;}
+          state.people=state.people.map(item=>item===name?next:item);
+          if(Object.hasOwn(state.personColors,name)){
+            state.personColors={...state.personColors,[next]:state.personColors[name]};
+            delete state.personColors[name];
+          }
+          for(const task of [...state.tasks,...state.groups]){
+            if(task.owner===name)task.owner=next;
+            task.assignees=(task.assignees||[]).map(item=>item===name?next:item);
+          }
+          save();render();renderPeopleColors();
+        });
+        remove.type='button';remove.textContent='⌫';remove.className='mini danger task-delete';remove.title='Delete person';
+        remove.setAttribute('aria-label','Delete '+name);
+        remove.addEventListener('click',()=>{
+          if(!confirm(`Delete “${name}” and remove them from all assigned tasks and groups?`))return;
+          state.people=state.people.filter(item=>item!==name);
+          delete state.personColors[name];
+          for(const task of [...state.tasks,...state.groups]){
+            if(task.owner===name)task.owner='';
+            task.assignees=(task.assignees||[]).filter(item=>item!==name);
+          }
+          save();render();renderPeopleColors();
+        });
+        picker.type='color';
+        picker.value=Object.hasOwn(state.personColors,name)?state.personColors[name]:'#719ce0';
+        picker.addEventListener('change',()=>{state.personColors={...state.personColors,[name]:picker.value};save();render();});
+        picker.setAttribute('aria-label','Color for '+name); row.append(field,picker,remove); return row;
+      }));
+    }
+    $('#addPeopleBtn').addEventListener('click',()=>{
+      $('#peopleInput').value='';
+      const panel=$('#peopleDialog');
+      if (panel.matches(':popover-open')) {panel.hidePopover();return;}
+      renderPeopleColors();
+      panel.showPopover();
+      const rect=$('#addPeopleBtn').getBoundingClientRect();
+      panel.style.left=Math.max(8,Math.min(rect.left,innerWidth-panel.offsetWidth-8))+'px';
+      panel.style.top=Math.max(8,Math.min(rect.bottom+4,innerHeight-panel.offsetHeight-8))+'px';
+      $('#peopleInput').focus();
+    });
+    $('#peopleDialog').addEventListener('toggle',e=>$('#addPeopleBtn').setAttribute('aria-expanded',String(e.newState==='open')));
+    $('#cancelPeopleBtn').addEventListener('click',()=>$('#peopleDialog').hidePopover());
+    $('#peopleForm').addEventListener('submit',e=>{
+      e.preventDefault();
+      const names=$('#peopleInput').value.split(',').map(name=>name.trim()).filter(Boolean);
+      if (!names.length) return $('#peopleInput').focus();
+      for (const name of names) if (!Object.hasOwn(state.personColors,name)) state.personColors={...state.personColors,[name]:$('#newPersonColor').value};
+      state.people=[...new Set([...state.people,...names])];
+      save(); render(); renderPeopleColors(); $('#peopleInput').value=''; $('#peopleInput').focus(); toast('People saved');
+    });
+    $('#pickAssignee').addEventListener('change',e=>{
+      const name=e.target.value;
+      if(name) taskAssigneeDraft=taskAssigneeDraft.includes(name)?taskAssigneeDraft.filter(n=>n!==name):[...taskAssigneeDraft,name];
+      renderAssigneePicker('#taskAssigneesSummary','#pickAssignee',taskAssigneeDraft);
+    });
     $('#addTaskBtn').addEventListener('click',()=>openTaskDialog());
     $('#saveGroupBtn').addEventListener('click',saveGroup);
     $('#saveTaskBtn').addEventListener('click',saveTask);
-    $('#deleteTaskBtn').addEventListener('click',()=>{
-      if (!editingTaskId) return; const t=state.tasks.find(x=>x.id===editingTaskId);
-      if (confirm(`Delete “${t.title}”?`)) { state.tasks=state.tasks.filter(x=>x.id!==editingTaskId); save(); $('#taskDialog').close(); render(); toast('Task deleted'); }
-    });
+    function deleteTask(id) {
+      const t=state.tasks.find(x=>x.id===id);
+      if (!t || !confirm(`Delete “${t.title}”?`)) return;
+      state.tasks=state.tasks.filter(x=>x.id!==id);
+      save(); if ($('#taskDialog').open) $('#taskDialog').close();
+      render(); toast('Task deleted — Ctrl/⌘+Z to undo');
+    }
+    $('#deleteTaskBtn').addEventListener('click',()=>deleteTask(editingTaskId));
     $('#startDate').addEventListener('change',e=>{ state.project.startDate=normalizeToBusinessDay(e.target.value || demo.project.startDate); save(); render(); });
     $('#daysVisible').addEventListener('change',e=>{ state.project.daysVisible=Number(e.target.value); save(); render(); });
     $('#zoomRange').addEventListener('input',e=>{ state.project.dayPx=Number(e.target.value); render(); });
@@ -1481,6 +1703,10 @@
 
     // Tiny power-user shortcut: Ctrl/Cmd+N adds a task.
     window.addEventListener('keydown', e=>{
+      if ((e.ctrlKey||e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase()==='z') {
+        if (e.target.closest?.('input,textarea,select,[contenteditable="true"]') || document.querySelector('dialog[open]')) return;
+        e.preventDefault(); if (!e.repeat) undoChange(); return;
+      }
       if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s') {
         e.preventDefault();
         if (linkedFileHandle && fileSystemSupported() && !localSaveFailed) { saveLocalOnly(); writeLinkedProjectFile(true); }
@@ -1550,7 +1776,7 @@
         $('#cloudChoiceMessage').textContent = 'No cloud project yet. Upload this device’s project to start syncing.';
         cloudStatus('Choose Upload this device’s project to start cloud sync');
       } else if (prior && prior === local && beforeFetch === local) {
-        state = parseProjectPayload(row.data);
+        state = parseProjectPayload(row.data); resetUndo();
         saveLocalOnly(); render();
         localStorage.setItem(cloudSnapshotKey(), cloudFingerprint());
         cloudReady = true;
@@ -1668,7 +1894,7 @@
     $('#cloudSetPasswordBtn').addEventListener('click',cloudSetPassword);
     $('#cloudSignOutBtn').addEventListener('click', () => { cloudReady=false; cloudSession=null; localStorage.removeItem(CLOUD_SESSION_KEY); $('#cloudFirstSync').hidden=true; cloudMessage('Signed out. This device still has its local copy.'); cloudStatus('Signed out — local copy only'); });
     $('#cloudUseOnlineBtn').addEventListener('click', async () => {
-      try { const row=await cloudFetchRow(); if (!row) throw new Error('Cloud project is missing'); state=parseProjectPayload(row.data); cloudRevision=row.revision; saveLocalOnly(); render(); localStorage.setItem(cloudSnapshotKey(),cloudFingerprint()); cloudDirty=false; cloudReady=true; $('#cloudFirstSync').hidden=true; cloudStatus('Cloud synced'); $('#cloudDialog').close(); }
+      try { const row=await cloudFetchRow(); if (!row) throw new Error('Cloud project is missing'); state=parseProjectPayload(row.data); resetUndo(); cloudRevision=row.revision; saveLocalOnly(); render(); localStorage.setItem(cloudSnapshotKey(),cloudFingerprint()); cloudDirty=false; cloudReady=true; $('#cloudFirstSync').hidden=true; cloudStatus('Cloud synced'); $('#cloudDialog').close(); }
       catch(err){ cloudMessage(err.message); }
     });
     $('#cloudUploadLocalBtn').addEventListener('click', async () => {
